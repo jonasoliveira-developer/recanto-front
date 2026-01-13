@@ -10,7 +10,7 @@ export function Header() {
         <Link href="/" className="font-bold text-lg hover:underline">Início</Link>
         <Link href="/funcionarios" className="hover:underline">Funcionários</Link>
         <Link href="/ocorrencias" className="hover:underline">Ocorrências</Link>
-        <Link href="/reservas" className="hover:underline">Reservas</Link>
+        {/* <Link href="/reservas" className="hover:underline">Reservas</Link> */}
         <Link href="/pagamentos" className="hover:underline">Pagamentos</Link>
         <Link href="/avisos" className="hover:underline">Avisos</Link>
         <Link href="/enderecos" className="hover:underline">Endereços</Link>

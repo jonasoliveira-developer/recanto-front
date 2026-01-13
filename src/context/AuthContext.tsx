@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { jwtDecode } from "jwt-decode";
+
 import { autenticarUsuario } from "../services/authApi";
 
 interface Usuario {
@@ -31,17 +31,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const tokenSalvo = localStorage.getItem("token");
+    const idSalvo = localStorage.getItem("id");
+    const userSalvo = localStorage.getItem("user");
+    const rolesSalvo = localStorage.getItem("roles");
     if (tokenSalvo) {
       definirToken(tokenSalvo);
-      try {
-        const dados: Usuario = jwtDecode(tokenSalvo);
-        if (dados && typeof dados === "object" && dados.email) {
-          definirUsuario(dados);
-        } else {
-          definirUsuario(null);
-        }
-      } catch (erro) {
-        console.error("Token JWT inválido:", erro);
+      // Monta objeto usuário a partir dos dados salvos
+      if (userSalvo) {
+        definirUsuario({ email: userSalvo, id: idSalvo, roles: rolesSalvo });
+      } else {
         definirUsuario(null);
       }
     }
@@ -49,12 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, senha: string) {
     const tokenRecebido = await autenticarUsuario(email, senha);
-    localStorage.setItem("token", tokenRecebido);
     definirToken(tokenRecebido);
-    try {
-      const dados: Usuario = jwtDecode(tokenRecebido);
-      definirUsuario(dados);
-    } catch {
+    // Pega dados do localStorage
+    const id = localStorage.getItem("id");
+    const user = localStorage.getItem("user");
+    const roles = localStorage.getItem("roles");
+    if (user) {
+      definirUsuario({ email: user, id, roles });
+    } else {
       definirUsuario(null);
     }
     router.push("/");
@@ -62,6 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function logout() {
     localStorage.removeItem("token");
+    localStorage.removeItem("id");
+    localStorage.removeItem("user");
+    localStorage.removeItem("roles");
     definirToken(null);
     definirUsuario(null);
     router.push("/login");

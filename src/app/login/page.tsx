@@ -1,23 +1,21 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { autenticarUsuario } from "../../services/authApi";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Login() {
   const [email, definirEmail] = useState("");
   const [senha, definirSenha] = useState("");
   const [erro, definirErro] = useState("");
   const [carregando, definirCarregando] = useState(false);
-  const router = useRouter();
+  const { login } = useAuth();
 
   async function aoEnviar(evento: React.FormEvent) {
     evento.preventDefault();
     definirCarregando(true);
     definirErro("");
     try {
-      const token = await autenticarUsuario(email, senha);
-      localStorage.setItem("token", token);
-      router.push("/");
+      await login(email, senha);
     } catch {
       definirErro("Credenciais inválidas. Tente novamente.");
     }
