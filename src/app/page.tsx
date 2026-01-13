@@ -1,65 +1,77 @@
-import Image from "next/image";
+
+"use client";
+import { useEffect, useState } from "react";
+import { listarResidentes } from "../services/recantoApi";
+import { useAuth } from "../context/AuthContext";
+import { Modal } from "../components/Modal";
 
 export default function Home() {
+  const [residentes, definirResidentes] = useState<any[]>([]);
+  const [modalAberto, definirModalAberto] = useState(false);
+  const [carregando, definirCarregando] = useState(false);
+  const { token } = useAuth();
+
+  useEffect(() => {
+    async function carregarResidentes() {
+      definirCarregando(true);
+      try {
+        if (!token) {
+          definirResidentes([]);
+          definirCarregando(false);
+          return;
+        }
+        const dados = await listarResidentes(token);
+        definirResidentes(dados);
+      } catch {
+        definirResidentes([]);
+      }
+      definirCarregando(false);
+    }
+    carregarResidentes();
+  }, [token]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 p-4 font-sans">
+      <header className="mb-6 flex flex-col items-center sm:flex-row sm:justify-between">
+        <h1 className="text-2xl font-bold text-blue-900">Residentes</h1>
+        <button
+          className="mt-2 rounded-lg bg-blue-600 px-4 py-2 text-white shadow hover:bg-blue-700 sm:mt-0"
+          onClick={() => definirModalAberto(true)}
+        >
+          Novo residente
+        </button>
+      </header>
+      <section className="rounded-lg bg-white p-4 shadow-md">
+        {carregando ? (
+          <p className="text-center text-blue-700">Carregando...</p>
+        ) : residentes.length === 0 ? (
+          <p className="text-center text-gray-500">Nenhum residente encontrado.</p>
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+            {residentes.map((residente) => (
+              <li key={residente.id} className="rounded border p-4 shadow hover:shadow-lg">
+                <h2 className="text-lg font-semibold text-blue-800">{residente.name}</h2>
+                <p className="text-sm text-gray-600">{residente.email}</p>
+                <p className="text-sm text-gray-600">{residente.cpf}</p>
+                <p className="text-sm text-gray-600">{residente.phoneNumber}</p>
+                <button className="mt-2 rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-700">Editar</button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <Modal aberto={modalAberto} aoFechar={() => definirModalAberto(false)} titulo="Cadastrar residente">
+        {/* Formulário de cadastro aqui */}
+        <form className="flex flex-col gap-3">
+          <input className="rounded border px-3 py-2" placeholder="Nome completo" />
+          <input className="rounded border px-3 py-2" placeholder="CPF" />
+          <input className="rounded border px-3 py-2" placeholder="E-mail" />
+          <input className="rounded border px-3 py-2" placeholder="Telefone" />
+          <input className="rounded border px-3 py-2" placeholder="Endereço" />
+          <input className="rounded border px-3 py-2" placeholder="Senha" type="password" />
+          <button type="submit" className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Salvar</button>
+        </form>
+      </Modal>
     </div>
   );
 }
