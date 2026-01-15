@@ -12,6 +12,24 @@ import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
 export default function Pagamentos() {
+                function modePaymentReturn(mode: string | number) {
+                  if (mode === "0" || mode === 0) return "DINHEIRO";
+                  if (mode === "1" || mode === 1) return "CARTÃO";
+                  if (mode === "2" || mode === 2) return "PIX";
+                  return "-";
+                }
+              function situationReturn(situation: string | number) {
+                if (situation === 0 || situation === "0") return "ABERTO";
+                if (situation === 1 || situation === "1") return "FECHADO";
+                return "-";
+              }
+          // Função para abrir o modal de recibo individual (garantir escopo global do componente)
+          const [reciboAberto, setReciboAberto] = useState(false);
+          const [pagamentoRecibo, setPagamentoRecibo] = useState<any | null>(null);
+          function abrirRecibo(pagamento: any) {
+            setPagamentoRecibo(pagamento);
+            setReciboAberto(true);
+          }
     // Função para gerar PDF do relatório DRE
     function gerarPdfRelatorioDRE(pagamentos: any[]) {
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -56,11 +74,7 @@ export default function Pagamentos() {
       pagamentos.forEach((p, idx) => {
         if (y > 280) { doc.addPage(); y = 16; }
         doc.text(String(p.title || '-'), colTitleX, y, { maxWidth: colTitleW });
-        let situacaoLabel = '-';
-        if (p.situation === 1 || p.situation === '1' || p.situation === 'PAID') situacaoLabel = 'Pago';
-        else if (p.situation === 0 || p.situation === '0' || p.situation === 'PENDING') situacaoLabel = 'Aberto';
-        else if (p.situation === 2 || p.situation === '2' || p.situation === 'CANCELLED') situacaoLabel = 'Cancelado';
-        doc.text(situacaoLabel, colSituacaoX, y, { maxWidth: colSituacaoW });
+        doc.text(situationReturn(p.situation), colSituacaoX, y, { maxWidth: colSituacaoW });
         doc.text('R$ ' + Number(p.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }), colValorX, y, { maxWidth: colValorW });
         doc.text(String(p.personName || '-'), colPessoaX, y, { maxWidth: colPessoaW });
         // Linha horizontal separadora após cada linha
@@ -78,17 +92,20 @@ export default function Pagamentos() {
     // Função para gerar PDF em lote idêntico ao recibo individual (4 por folha A4)
     function gerarPdfRecibosLote(recibos: any[]) {
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-      const reciboWidth = 90;
-      const reciboHeight = 65;
-      const marginX = 15;
-      const marginY = 15;
-      const gapX = 10;
-      const gapY = 10;
+      // 3 recibos por página, um embaixo do outro, 1mm de distância
+      const pageHeight = 297;
+      const pageWidth = 210;
+      const reciboWidth = 190;
+      const reciboHeight = 93;
+      const marginX = 10;
+      const marginY = 10;
+      const gapY = 1;
+      const recibosPorPagina = 3;
       recibos.forEach((recibo, idx) => {
-        const localIdx = idx % 4;
+        const localIdx = idx % recibosPorPagina;
         if (idx > 0 && localIdx === 0) doc.addPage();
-        const localPosX = marginX + (localIdx % 2) * (reciboWidth + gapX);
-        const localPosY = marginY + Math.floor(localIdx / 2) * (reciboHeight + gapY);
+        const localPosX = marginX;
+        const localPosY = marginY + localIdx * (reciboHeight + gapY);
         // Borda pontilhada
         doc.setLineDashPattern([2, 2], 0);
         doc.setDrawColor(120);
@@ -97,46 +114,48 @@ export default function Pagamentos() {
         // Título
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(13);
-        doc.text('RECIBO', localPosX + reciboWidth / 2, localPosY + 9, { align: 'center' });
+        doc.text('RECIBO', localPosX + reciboWidth / 2, localPosY + 10, { align: 'center' });
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
-        let y = localPosY + 16;
+        let y = localPosY + 20;
         const addField = (label: string, value: string) => {
-          doc.setFont('helvetica', 'bold');
-          doc.text(label, localPosX + 5, y);
-          doc.setFont('helvetica', 'normal');
-          doc.text(String(value), localPosX + 35, y, { maxWidth: reciboWidth - 40 });
-          y += 6;
+          // Espaço de 1mm após os dois pontos
+          doc.text(label + ':', localPosX + 8, y, { baseline: 'top' });
+          const labelWidth = doc.getTextWidth(label + ':');
+          // 1mm em jsPDF geralmente equivale a 2.83465 unidades
+          const space1mm = 2.83;
+          doc.text(String(value), localPosX + 8 + labelWidth + space1mm, y, { baseline: 'top' });
+          y += 7;
         };
-        addField('TÍTULO:', recibo.title || '-');
-        addField('VALOR:', 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-        addField('TIPO PAGAMENTO:', recibo.modePayment || '-');
-        addField('DATA ABERTURA:', recibo.datePayment ? dayjs(recibo.datePayment).format('DD/MM/YYYY') : '-');
-        let situacaoLabel = 'Aberto';
-        if (recibo.situation === 1 || recibo.situation === '1' || recibo.situation === 'PAID') situacaoLabel = 'Pago';
-        else if (recibo.situation === 0 || recibo.situation === '0' || recibo.situation === 'PENDING') situacaoLabel = 'Aberto';
-        else if (recibo.situation === 2 || recibo.situation === '2' || recibo.situation === 'CANCELLED') situacaoLabel = 'Cancelado';
-        addField('SITUAÇÃO:', situacaoLabel);
-        addField('DATA FECHAMENTO:', recibo.finishPayment && recibo.dateClose ? dayjs(recibo.dateClose).format('DD/MM/YYYY') : '-');
-        addField('NOME:', recibo.personName || '-');
-        addField('ENDEREÇO:', recibo.adress || '-');
+        addField('TÍTULO', recibo.title || '-');
+        // VENCIMENTO (se existir)
+        if (recibo.dueDate) {
+          addField('VENCIMENTO', recibo.dueDate);
+        }
+        addField('VALOR', 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+        addField('TIPO PAGAMENTO', recibo.modePayment || '-');
+        // Exibir DATA ABERTURA como vem do backend, sem validação/conversão
+        addField('DATA ABERTURA', recibo.openDate || '-');
+        // Exibir TIPO PAGAMENTO como vem do backend, sem conversão
+        addField('TIPO PAGAMENTO', recibo.modePayment || '-');
+        addField('SITUAÇÃO', recibo.situation || '-');
+        // Exibir DATA FECHAMENTO como vem do backend, sem validação/conversão
+        addField('DATA FECHAMENTO', recibo.dateClose || '-');
+        addField('NOME', recibo.personName || '-');
+        addField('ENDEREÇO', recibo.adress || '-');
         if (recibo.obs) {
-          doc.setFont('helvetica', 'bold');
-          doc.text('OBSERVAÇÕES:', localPosX + 5, y);
-          doc.setFont('helvetica', 'normal');
-          doc.text(String(recibo.obs), localPosX + 35, y, { maxWidth: reciboWidth - 40 });
-          y += 6;
+          addField('OBSERVAÇÕES', String(recibo.obs));
         }
         doc.setFontSize(8);
         doc.setTextColor(80, 80, 200);
-        doc.text('https://recantodeitapua.com.br', localPosX + 5, localPosY + reciboHeight - 4);
+        doc.text('https://recantodeitapua.com.br', localPosX + 8, localPosY + reciboHeight - 7);
         doc.setTextColor(120);
         doc.setFontSize(7);
-        doc.text('ID: ' + recibo.id, localPosX + reciboWidth - 30, localPosY + reciboHeight - 4);
+        doc.text('ID: ' + recibo.id, localPosX + reciboWidth - 40, localPosY + reciboHeight - 7);
         doc.setFontSize(10);
         doc.setTextColor(0);
       });
-      doc.save('recibos-lote.pdf');
+      window.open(doc.output('bloburl'), '_blank');
     }
 
   // Estado do modal de recibos em lote
@@ -149,12 +168,10 @@ export default function Pagamentos() {
   // Filtro de situação: '' = todos, '0' = aberto, '1' = fechado
   const [situacaoFiltro, setSituacaoFiltro] = useState('');
   // Função para abrir o modal de recibo
-  const [reciboAberto, setReciboAberto] = useState(false);
-  const [pagamentoRecibo, setPagamentoRecibo] = useState<any | null>(null);
-  function abrirRecibo(pagamento: any) {
-    setPagamentoRecibo(pagamento);
-    setReciboAberto(true);
-  }
+    function abrirRecibo(pagamento: any) {
+      setPagamentoRecibo(pagamento);
+      setReciboAberto(true);
+    }
   // Mapeamento de códigos para nomes de situação
   const opcoesSituacao = [
     { codigo: "PAID", nome: "Pago" },
@@ -598,77 +615,34 @@ export default function Pagamentos() {
                   <div className="flex gap-2 mt-2 items-center">
                     <button
                       className="rounded bg-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-300 mr-2"
-                      title="Imprimir recibo"
+                      title="Visualizar recibo"
                       onClick={() => abrirRecibo(pagamento)}
-                      >
-                        <FaRegFileAlt />
+                    >
+                      <FaRegFileAlt />
                     </button>
                   </div>
                 </li>
               ))}
             </ul>
+            {/* Modal de Recibo individual - global, fora do .map() */}
+            <Modal aberto={reciboAberto} aoFechar={() => setReciboAberto(false)} titulo="Recibo">
+              {pagamentoRecibo && <>
+                {(() => { console.log('Recibo selecionado:', pagamentoRecibo); return null; })()}
+                <div className="flex flex-col gap-2 text-base">
+                  <div><b>TÍTULO:</b> {pagamentoRecibo.title || '-'}</div>
+                  <div><b>VALOR:</b> {pagamentoRecibo.cash !== undefined ? 'R$ ' + Number(pagamentoRecibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</div>
+                  <div><b>TIPO PAGAMENTO:</b> {modePaymentReturn(pagamentoRecibo.modePayment)}</div>
+                  <div><b>DATA PAGAMENTO:</b> {pagamentoRecibo.datePayment || '-'}</div>
+                  <div><b>DATA FECHAMENTO:</b> {pagamentoRecibo.finishPayment || '-'}</div>
+                  <div><b>SITUAÇÃO:</b> {situationReturn(pagamentoRecibo.situation)}</div>
+                  <div><b>NOME:</b> {pagamentoRecibo.personName || '-'}</div>
+                  <div><b>ENDEREÇO:</b> {pagamentoRecibo.adress || '-'}</div>
+                  <div><b>OBSERVAÇÕES:</b> {pagamentoRecibo.obs || '-'}</div>
+                  <div className="text-xs text-gray-400 mt-2">ID: {pagamentoRecibo.id}</div>
+                </div>
+              </>}
+            </Modal>
         {/* Modal de Recibo global */}
-        <Modal aberto={reciboAberto} aoFechar={() => setReciboAberto(false)} titulo={
-          <div className="flex items-center gap-2">
-            <span>RECIBO</span>
-            <button
-              className="ml-2 text-gray-600 hover:text-gray-900"
-              title="Imprimir recibo"
-              onClick={() => {
-                const printContent = document.getElementById('recibo-print-content');
-                if (printContent) {
-                  const printWindow = window.open('', '', 'width=800,height=600');
-                  if (printWindow) {
-                    printWindow.document.write('<html><head><title>Recibo</title>');
-                    printWindow.document.write(`
-                      <style>
-                        body { font-family: sans-serif; padding: 24px; background: #f5f5f5; }
-                        .recibo-borda {
-                          border: 2px dashed #888;
-                          border-radius: 12px;
-                          background: #fff;
-                          max-width: 480px;
-                          margin: 40px auto;
-                          padding: 32px 28px;
-                          box-shadow: 0 2px 12px #0001;
-                        }
-                        b { font-weight: bold; }
-                        .site { color: #2563eb; font-size: 12px; margin-top: 12px; }
-                      </style>
-                    `);
-                    printWindow.document.write('</head><body>');
-                    printWindow.document.write(`<div class="recibo-borda">${printContent.innerHTML}</div>`);
-                    printWindow.document.write('</body></html>');
-                    printWindow.document.close();
-                    printWindow.focus();
-                    printWindow.print();
-                    printWindow.close();
-                  }
-                }
-              }}
-            >
-              <FaPrint />
-            </button>
-          </div>
-        }>
-          {pagamentoRecibo && (
-            <div id="recibo-print-content" className="flex flex-col gap-2 text-base">
-              <div><b>TÍTULO:</b> {pagamentoRecibo.title}</div>
-              <div><b>VALOR:</b> R$ {Number(pagamentoRecibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-              <div><b>TIPO PAGAMENTO:</b> {pagamentoRecibo.modePayment}</div>
-              <div><b>DATA ABERTURA:</b> {pagamentoRecibo.datePayment ? new Date(pagamentoRecibo.datePayment).toLocaleDateString('pt-BR') : ''}</div>
-              <div><b>SITUAÇÃO:</b> {typeof pagamentoRecibo.situation === 'number'
-                ? (pagamentoRecibo.situation === 1 ? 'Pago' : pagamentoRecibo.situation === 2 ? 'Pendente' : pagamentoRecibo.situation === 3 ? 'Cancelado' : pagamentoRecibo.situation)
-                : (opcoesSituacao.find(opt => opt.codigo === pagamentoRecibo.situation)?.nome || pagamentoRecibo.situation)}
-              </div>
-              <div><b>DATA FECHAMENTO:</b> {pagamentoRecibo.finishPayment && pagamentoRecibo.datePayment ? new Date(pagamentoRecibo.datePayment).toLocaleDateString('pt-BR') : ''}</div>
-              <div><b>NOME:</b> {pagamentoRecibo.personName}</div>
-              <div><b>ENDEREÇO:</b> {pagamentoRecibo.adress}</div>
-              <div><b>OBSERVAÇÕES:</b> {pagamentoRecibo.obs}</div>
-              <div className="site mt-2 text-xs text-blue-700">https://recantodeitapua.com.br</div>
-            </div>
-          )}
-        </Modal>
             <Paginacao
               paginaAtual={paginaAtual}
               totalPaginas={totalPaginas}
