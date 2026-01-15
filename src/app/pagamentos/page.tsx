@@ -11,6 +11,87 @@ import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
 export default function Pagamentos() {
+    // Função para gerar PDF em lote idêntico ao recibo individual (4 por folha A4)
+    function gerarPdfRecibosLote(recibos: any[]) {
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      // 3 recibos por página, centralizados verticalmente
+      const pageHeight = 297;
+      const reciboWidth = 180;
+      const reciboHeight = 90;
+      const marginX = 15;
+      const gapY = 12;
+      const totalRecibosPorPagina = 3;
+      const blocoRecibosAltura = reciboHeight * totalRecibosPorPagina + gapY * (totalRecibosPorPagina - 1);
+      recibos.forEach((recibo, idx) => {
+        const localIdx = idx % totalRecibosPorPagina;
+        if (idx > 0 && localIdx === 0) doc.addPage();
+        // Centralizar verticalmente o bloco de 3 recibos
+        const offsetY = (pageHeight - blocoRecibosAltura) / 2;
+        const localPosX = marginX;
+        const localPosY = offsetY + localIdx * (reciboHeight + gapY);
+        // Borda pontilhada
+        doc.setLineDashPattern([2, 2], 0);
+        doc.setDrawColor(120);
+        doc.roundedRect(localPosX, localPosY, reciboWidth, reciboHeight, 4, 4, 'S');
+        doc.setLineDashPattern([], 0);
+        // Título
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.text('RECIBO', localPosX + 5, localPosY + 10, { align: 'left' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        let y = localPosY + 18;
+        const addField = (label: string, value: string) => {
+          const labelX = localPosX + 5;
+          doc.setFont('helvetica', 'bold');
+          // Medir largura do label para posicionar valor logo após os dois pontos
+          const labelWithColon = label.endsWith(':') ? label : label + ':';
+          const labelWidth = doc.getTextWidth(labelWithColon);
+          doc.text(labelWithColon, labelX, y, { align: 'left' });
+          doc.setFont('helvetica', 'normal');
+          // Espaço de 2mm após os dois pontos
+          const valueX = labelX + labelWidth + 2;
+          doc.text(String(value), valueX, y, { maxWidth: reciboWidth - (valueX - localPosX) - 5, align: 'left' });
+          y += 7;
+        };
+        addField('TÍTULO:', recibo.title || '-');
+        addField('VENCIMENTO:', recibo.dueDate ? (dayjs(recibo.dueDate).isValid() ? dayjs(recibo.dueDate).format('DD/MM/YYYY') : '-') : '-');
+        addField('VALOR:', 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+        addField('TIPO PAGAMENTO:', recibo.modePayment || '-');
+        addField('DATA ABERTURA:', recibo.datePayment ? dayjs(recibo.datePayment).format('DD/MM/YYYY') : '-');
+        let situacaoLabel = 'Aberto';
+        if (recibo.situation === 1 || recibo.situation === '1' || recibo.situation === 'PAID') situacaoLabel = 'Pago';
+        else if (recibo.situation === 0 || recibo.situation === '0' || recibo.situation === 'PENDING') situacaoLabel = 'Aberto';
+        else if (recibo.situation === 2 || recibo.situation === '2' || recibo.situation === 'CANCELLED') situacaoLabel = 'Cancelado';
+        addField('SITUAÇÃO:', situacaoLabel);
+        addField('DATA FECHAMENTO:', recibo.finishPayment && recibo.dateClose ? dayjs(recibo.dateClose).format('DD/MM/YYYY') : '-');
+        addField('NOME:', recibo.personName || '-');
+        addField('ENDEREÇO:', recibo.adress || '-');
+        if (recibo.obs) {
+          doc.setFont('helvetica', 'bold');
+          const obsLabel = 'OBSERVAÇÕES:';
+          const obsLabelX = localPosX + 5;
+          const obsLabelWidth = doc.getTextWidth(obsLabel);
+          doc.text(obsLabel, obsLabelX, y, { align: 'left' });
+          doc.setFont('helvetica', 'normal');
+          // Espaço de 1mm após os dois pontos
+          const obsValueX = obsLabelX + obsLabelWidth + 1;
+          doc.text(String(recibo.obs), obsValueX, y, { maxWidth: reciboWidth - (obsValueX - localPosX) - 5, align: 'left' });
+          y += 7;
+        }
+        doc.setFontSize(8);
+        doc.setTextColor(80, 80, 200);
+        doc.text('https://recantodeitapua.com.br', localPosX + 5, localPosY + reciboHeight - 4, { align: 'left' });
+        doc.setTextColor(120);
+        doc.setFontSize(7);
+        doc.text('ID: ' + recibo.id, localPosX + reciboWidth - 30, localPosY + reciboHeight - 4, { align: 'left' });
+        doc.setFontSize(10);
+        doc.setTextColor(0);
+      });
+      // Abrir visualização de impressão em vez de baixar
+      window.open(doc.output('bloburl'), '_blank');
+    }
+
   // Estado do modal de recibos em lote
   const [modalRecibosAberto, setModalRecibosAberto] = useState(false);
   const [dataInicial, setDataInicial] = useState("");
@@ -312,7 +393,7 @@ export default function Pagamentos() {
                           {recibosPaginados.length > 0 && (
                             <button
                               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow h-10"
-                              onClick={() => window.print()}
+                              onClick={() => gerarPdfRecibosLote(recibosPaginados)}
                             >
                               <FaPrint /> Imprimir recibos
                             </button>
