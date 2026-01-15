@@ -267,8 +267,12 @@ export default function Pagamentos() {
                   const recibosPaginados = recibosFiltrados.slice(inicioRecibo, fimRecibo);
                   return (
                     <>
-                      <div className="flex flex-row flex-wrap gap-4 items-end bg-gray-50 p-4 rounded-lg mb-4 w-full justify-between">
-                        <div className="flex flex-row flex-1 gap-4">
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-stretch bg-gray-50 p-4 rounded-lg mb-4 w-full justify-between mt-0 pt-0">
+                        {/* Botão de fechar no topo no mobile, ao lado dos filtros no desktop */}
+                        <div className="flex flex-row w-full justify-end sm:hidden mb-2">
+                          <button onClick={() => setModalRecibosAberto(false)} className="text-gray-500 hover:text-gray-700 text-2xl leading-none px-2 pb-1">×</button>
+                        </div>
+                        <div className="flex flex-col sm:flex-row flex-1 gap-4">
                           <div className="flex flex-col flex-1 min-w-[120px]">
                             <label className="text-xs font-semibold mb-1">Data inicial</label>
                             <input
@@ -304,7 +308,7 @@ export default function Pagamentos() {
                             </select>
                           </div>
                         </div>
-                        <div className="flex flex-row gap-2 items-end mt-0">
+                        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end mt-0">
                           {recibosPaginados.length > 0 && (
                             <button
                               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow h-10"
@@ -313,7 +317,8 @@ export default function Pagamentos() {
                               <FaPrint /> Imprimir recibos
                             </button>
                           )}
-                          <button onClick={() => setModalRecibosAberto(false)} className="text-gray-500 hover:text-gray-700 text-2xl leading-none px-2 pb-1 h-10">×</button>
+                          {/* Botão de fechar só aparece aqui em telas médias+ */}
+                          <button onClick={() => setModalRecibosAberto(false)} className="hidden sm:inline text-gray-500 hover:text-gray-700 text-2xl leading-none px-2 pb-1 h-10">×</button>
                         </div>
                       </div>
                       {/* ...botão de imprimir agora só no cabeçalho... */}
@@ -331,24 +336,24 @@ export default function Pagamentos() {
                           else if (recibo.situation === 0 || recibo.situation === '0' || recibo.situation === 'PENDING') situacaoLabel = 'Aberto';
                           else if (recibo.situation === 2 || recibo.situation === '2' || recibo.situation === 'CANCELLED') situacaoLabel = 'Cancelado';
                           return (
-                            <div key={recibo.id} className="border rounded-xl shadow bg-white p-6 max-w-2xl mx-auto relative print:border-black print:shadow-none">
-                              <div className="flex flex-col gap-2">
-                                <div className="text-center text-xl font-bold text-pink-900 mb-4 tracking-wide">RECIBO</div>
-                                <div className="text-base"><span className="font-semibold">TÍTULO:</span> {recibo.title}</div>
-                                {recibo.dueDate && <div className="text-base"><span className="font-semibold">VENCIMENTO:</span> {dayjs(recibo.dueDate).isValid() ? dayjs(recibo.dueDate).format('DD/MM/YYYY') : '-'}</div>}
-                                <div className="text-base"><span className="font-semibold">VALOR:</span> R$ {Number(recibo.cash).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
-                                <div className="text-base"><span className="font-semibold">TIPO PAGAMENTO:</span> {recibo.modePayment || '-'}</div>
-                                <div className="text-base"><span className="font-semibold">DATA ABERTURA:</span> {dataAbertura && dataAbertura !== 'Invalid Date' ? dataAbertura : '-'}</div>
-                                <div className="text-base"><span className="font-semibold">SITUAÇÃO:</span> {situacaoLabel}</div>
-                                <div className="text-base"><span className="font-semibold">DATA FECHAMENTO:</span> {dataFechamento && dataFechamento !== 'Invalid Date' ? dataFechamento : '-'}</div>
-                                <div className="text-base"><span className="font-semibold">NOME:</span> {recibo.personName}</div>
-                                <div className="text-base"><span className="font-semibold">ENDEREÇO:</span> {recibo.adress || '-'}</div>
+                            <div key={recibo.id} className="border rounded-lg shadow bg-white p-2 max-w-[420px] mx-auto relative print:border-black print:shadow-none text-[12px] leading-tight h-[250px] flex flex-col justify-between">
+                              <div className="flex flex-col gap-[2px]">
+                                <div className="text-center text-[14px] font-bold text-pink-900 mb-[3px] tracking-wide">RECIBO</div>
+                                <div><span className="font-semibold">TÍTULO:</span> {recibo.title}</div>
+                                {recibo.dueDate && <div><span className="font-semibold">VENCIMENTO:</span> {dayjs(recibo.dueDate).isValid() ? dayjs(recibo.dueDate).format('DD/MM/YYYY') : '-'}</div>}
+                                <div><span className="font-semibold">VALOR:</span> R$ {Number(recibo.cash).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                                <div><span className="font-semibold">TIPO PAGAMENTO:</span> {recibo.modePayment || '-'}</div>
+                                <div><span className="font-semibold">DATA ABERTURA:</span> {dataAbertura && dataAbertura !== 'Invalid Date' ? dataAbertura : '-'}</div>
+                                <div><span className="font-semibold">SITUAÇÃO:</span> {situacaoLabel}</div>
+                                <div><span className="font-semibold">DATA FECHAMENTO:</span> {dataFechamento && dataFechamento !== 'Invalid Date' ? dataFechamento : '-'}</div>
+                                <div><span className="font-semibold">NOME:</span> {recibo.personName}</div>
+                                <div><span className="font-semibold">ENDEREÇO:</span> {recibo.adress || '-'}</div>
                                 {recibo.obs && (
-                                  <div className="text-base text-gray-700 mt-2"><span className="font-semibold">OBSERVAÇÕES:</span> {recibo.obs}</div>
+                                  <div className="text-gray-700 mt-[2px]"><span className="font-semibold">OBSERVAÇÕES:</span> {recibo.obs}</div>
                                 )}
                               </div>
-                              <div className="flex justify-end mt-4">
-                                <span className="text-xs text-gray-400">ID: {recibo.id}</span>
+                              <div className="flex justify-end mt-[3px]">
+                                <span className="text-[10px] text-gray-400">ID: {recibo.id}</span>
                               </div>
                             </div>
                           );
