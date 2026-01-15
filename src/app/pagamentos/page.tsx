@@ -12,6 +12,11 @@ import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
 export default function Pagamentos() {
+                  // Função para trocar '-' por '/' em datas
+                  function formatarDataBarra(data: string | undefined) {
+                    if (!data) return '-';
+                    return String(data).replace(/-/g, '/');
+                  }
                 function modePaymentReturn(mode: string | number) {
                   if (mode === "0" || mode === 0) return "DINHEIRO";
                   if (mode === "1" || mode === 1) return "CARTÃO";
@@ -480,32 +485,83 @@ export default function Pagamentos() {
                           <div className="text-center text-gray-500">Nenhum recibo encontrado.</div>
                         ) : recibosPaginados.map((recibo) => {
                           // Formatação de datas
-                          const dataAbertura = recibo.datePayment ? dayjs(recibo.datePayment).format('DD/MM/YYYY') : '';
-                          const dataFechamento = recibo.finishPayment && recibo.dateClose ? dayjs(recibo.dateClose).format('DD/MM/YYYY') : '';
+                          const dataAbertura = formatarDataBarra(recibo.datePayment);
+                          const dataFechamento = formatarDataBarra(recibo.dateClose);
                           // Situação
                           let situacaoLabel = 'Aberto';
                           if (recibo.situation === 1 || recibo.situation === '1' || recibo.situation === 'PAID') situacaoLabel = 'Pago';
                           else if (recibo.situation === 0 || recibo.situation === '0' || recibo.situation === 'PENDING') situacaoLabel = 'Aberto';
                           else if (recibo.situation === 2 || recibo.situation === '2' || recibo.situation === 'CANCELLED') situacaoLabel = 'Cancelado';
+                          // Função para imprimir apenas este recibo
+                          const imprimirReciboUnico = () => {
+                            const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+                            const reciboWidth = 190;
+                            const reciboHeight = 93;
+                            const localPosX = 10;
+                            const localPosY = 10;
+                            // Borda pontilhada
+                            doc.setLineDashPattern([2, 2], 0);
+                            doc.setDrawColor(120);
+                            doc.roundedRect(localPosX, localPosY, reciboWidth, reciboHeight, 4, 4, 'S');
+                            doc.setLineDashPattern([], 0);
+                            // Título
+                            doc.setFont('helvetica', 'bold');
+                            doc.setFontSize(13);
+                            doc.text('RECIBO', localPosX + reciboWidth / 2, localPosY + 10, { align: 'center' });
+                            doc.setFont('helvetica', 'normal');
+                            doc.setFontSize(10);
+                            let y = localPosY + 20;
+                            const addField = (label: string, value: string) => {
+                              doc.text(label + ':', localPosX + 8, y, { baseline: 'top' });
+                              const labelWidth = doc.getTextWidth(label + ':');
+                              const space1mm = 2.83;
+                              doc.text(String(value), localPosX + 8 + labelWidth + space1mm, y, { baseline: 'top' });
+                              y += 7;
+                            };
+                            addField('TÍTULO', recibo.title || '-');
+                            if (recibo.dueDate) addField('VENCIMENTO', formatarDataBarra(recibo.dueDate));
+                            addField('VALOR', 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+                            addField('TIPO PAGAMENTO', recibo.modePayment || '-');
+                            addField('DATA ABERTURA', formatarDataBarra(recibo.datePayment));
+                            addField('SITUAÇÃO', situacaoLabel);
+                            addField('DATA FECHAMENTO', formatarDataBarra(recibo.dateClose));
+                            addField('NOME', recibo.personName || '-');
+                            addField('ENDEREÇO', recibo.adress || '-');
+                            if (recibo.obs) addField('OBSERVAÇÕES', String(recibo.obs));
+                            doc.setFontSize(8);
+                            doc.setTextColor(80, 80, 200);
+                            doc.text('https://recantodeitapua.com.br', localPosX + 8, localPosY + reciboHeight - 7);
+                            doc.setTextColor(120);
+                            doc.setFontSize(7);
+                            doc.text('ID: ' + recibo.id, localPosX + reciboWidth - 40, localPosY + reciboHeight - 7);
+                            doc.setFontSize(10);
+                            doc.setTextColor(0);
+                            window.open(doc.output('bloburl'), '_blank');
+                          };
                           return (
-                            <div key={recibo.id} className="border rounded-lg shadow bg-white p-2 max-w-[420px] mx-auto relative print:border-black print:shadow-none text-[12px] leading-tight h-[250px] flex flex-col justify-between">
+                            <div key={recibo.id} className="border rounded-lg shadow bg-white p-2 max-w-[420px] mx-auto relative print:border-black print:shadow-none text-[12px] leading-tight h-[250px] flex flex-col justify-between print:rounded print:border print:border-dashed print:border-gray-400 print:p-2">
                               <div className="flex flex-col gap-[2px]">
                                 <div className="text-center text-[14px] font-bold text-pink-900 mb-[3px] tracking-wide">RECIBO</div>
                                 <div><span className="font-semibold">TÍTULO:</span> {recibo.title}</div>
-                                {recibo.dueDate && <div><span className="font-semibold">VENCIMENTO:</span> {dayjs(recibo.dueDate).isValid() ? dayjs(recibo.dueDate).format('DD/MM/YYYY') : '-'}</div>}
+                                {recibo.dueDate && <div><span className="font-semibold">VENCIMENTO:</span> {formatarDataBarra(recibo.dueDate)}</div>}
                                 <div><span className="font-semibold">VALOR:</span> R$ {Number(recibo.cash).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
                                 <div><span className="font-semibold">TIPO PAGAMENTO:</span> {recibo.modePayment || '-'}</div>
-                                <div><span className="font-semibold">DATA ABERTURA:</span> {dataAbertura && dataAbertura !== 'Invalid Date' ? dataAbertura : '-'}</div>
+                                <div><span className="font-semibold">DATA ABERTURA:</span> {formatarDataBarra(recibo.datePayment)}</div>
                                 <div><span className="font-semibold">SITUAÇÃO:</span> {situacaoLabel}</div>
-                                <div><span className="font-semibold">DATA FECHAMENTO:</span> {dataFechamento && dataFechamento !== 'Invalid Date' ? dataFechamento : '-'}</div>
+                                <div><span className="font-semibold">DATA FECHAMENTO:</span> {formatarDataBarra(recibo.dateClose)}</div>
                                 <div><span className="font-semibold">NOME:</span> {recibo.personName}</div>
                                 <div><span className="font-semibold">ENDEREÇO:</span> {recibo.adress || '-'}</div>
                                 {recibo.obs && (
                                   <div className="text-gray-700 mt-[2px]"><span className="font-semibold">OBSERVAÇÕES:</span> {recibo.obs}</div>
                                 )}
                               </div>
-                              <div className="flex justify-end mt-[3px]">
+                              <div className="flex justify-between items-end mt-[3px]">
                                 <span className="text-[10px] text-gray-400">ID: {recibo.id}</span>
+                                <button
+                                  className="ml-2 px-2 py-1 rounded bg-blue-600 text-white text-xs hover:bg-blue-700 print:hidden"
+                                  title="Imprimir este recibo"
+                                  onClick={imprimirReciboUnico}
+                                >Imprimir</button>
                               </div>
                             </div>
                           );
@@ -625,15 +681,64 @@ export default function Pagamentos() {
               ))}
             </ul>
             {/* Modal de Recibo individual - global, fora do .map() */}
-            <Modal aberto={reciboAberto} aoFechar={() => setReciboAberto(false)} titulo="Recibo">
+            <Modal aberto={reciboAberto} aoFechar={() => setReciboAberto(false)} titulo="Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã - Recibo">
               {pagamentoRecibo && <>
                 {(() => { console.log('Recibo selecionado:', pagamentoRecibo); return null; })()}
                 <div className="flex flex-col gap-2 text-base">
+                  <button
+                    className="self-end mb-2 px-3 py-1 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 print:hidden"
+                    title="Imprimir recibo"
+                    onClick={() => {
+                      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+                      const reciboWidth = 190;
+                      const reciboHeight = 93;
+                      const localPosX = 10;
+                      const localPosY = 10;
+                      doc.setLineDashPattern([2, 2], 0);
+                      doc.setDrawColor(120);
+                      doc.roundedRect(localPosX, localPosY, reciboWidth, reciboHeight, 4, 4, 'S');
+                      doc.setLineDashPattern([], 0);
+                      doc.setFont('helvetica', 'bold');
+                      doc.setFontSize(11);
+                      doc.text('Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã', localPosX + reciboWidth / 2, localPosY + 8, { align: 'center' });
+                      doc.setFontSize(13);
+                      doc.text('RECIBO', localPosX + reciboWidth / 2, localPosY + 18, { align: 'center' });
+                      doc.setFont('helvetica', 'normal');
+                      doc.setFontSize(10);
+                      let y = localPosY + 28;
+                      const addField = (label: string, value: string) => {
+                        doc.text(label + ':', localPosX + 8, y, { baseline: 'top' });
+                        const labelWidth = doc.getTextWidth(label + ':');
+                        const space1mm = 2.83;
+                        doc.text(String(value), localPosX + 8 + labelWidth + space1mm, y, { baseline: 'top' });
+                        y += 7;
+                      };
+                      addField('TÍTULO', pagamentoRecibo.title || '-');
+                      if (pagamentoRecibo.dueDate) addField('VENCIMENTO', formatarDataBarra(pagamentoRecibo.dueDate));
+                      addField('VALOR', 'R$ ' + Number(pagamentoRecibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+                      addField('TIPO PAGAMENTO', modePaymentReturn(pagamentoRecibo.modePayment));
+                      addField('DATA ABERTURA', formatarDataBarra(pagamentoRecibo.datePayment));
+                      addField('SITUAÇÃO', situationReturn(pagamentoRecibo.situation));
+                      addField('DATA FECHAMENTO', formatarDataBarra(pagamentoRecibo.finishPayment));
+                      addField('NOME', pagamentoRecibo.personName || '-');
+                      addField('ENDEREÇO', pagamentoRecibo.adress || '-');
+                      if (pagamentoRecibo.obs) addField('OBSERVAÇÕES', String(pagamentoRecibo.obs));
+                      doc.setFontSize(8);
+                      doc.setTextColor(80, 80, 200);
+                      doc.text('https://recantodeitapua.com.br', localPosX + 8, localPosY + reciboHeight - 7);
+                      doc.setTextColor(120);
+                      doc.setFontSize(7);
+                      doc.text('ID: ' + pagamentoRecibo.id, localPosX + reciboWidth - 40, localPosY + reciboHeight - 7);
+                      doc.setFontSize(10);
+                      doc.setTextColor(0);
+                      window.open(doc.output('bloburl'), '_blank');
+                    }}
+                  >Imprimir</button>
                   <div><b>TÍTULO:</b> {pagamentoRecibo.title || '-'}</div>
                   <div><b>VALOR:</b> {pagamentoRecibo.cash !== undefined ? 'R$ ' + Number(pagamentoRecibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</div>
                   <div><b>TIPO PAGAMENTO:</b> {modePaymentReturn(pagamentoRecibo.modePayment)}</div>
-                  <div><b>DATA PAGAMENTO:</b> {pagamentoRecibo.datePayment || '-'}</div>
-                  <div><b>DATA FECHAMENTO:</b> {pagamentoRecibo.finishPayment || '-'}</div>
+                  <div><b>DATA PAGAMENTO:</b> {formatarDataBarra(pagamentoRecibo.datePayment)}</div>
+                  <div><b>DATA FECHAMENTO:</b> {formatarDataBarra(pagamentoRecibo.finishPayment)}</div>
                   <div><b>SITUAÇÃO:</b> {situationReturn(pagamentoRecibo.situation)}</div>
                   <div><b>NOME:</b> {pagamentoRecibo.personName || '-'}</div>
                   <div><b>ENDEREÇO:</b> {pagamentoRecibo.adress || '-'}</div>
