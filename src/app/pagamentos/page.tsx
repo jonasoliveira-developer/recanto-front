@@ -116,41 +116,32 @@ export default function Pagamentos() {
         doc.setDrawColor(120);
         doc.roundedRect(localPosX, localPosY, reciboWidth, reciboHeight, 4, 4, 'S');
         doc.setLineDashPattern([], 0);
-        // Título
+        // Nome da associação
         doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.text('Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã', localPosX + reciboWidth / 2, localPosY + 8, { align: 'center' });
         doc.setFontSize(13);
-        doc.text('RECIBO', localPosX + reciboWidth / 2, localPosY + 10, { align: 'center' });
+        doc.text('RECIBO', localPosX + reciboWidth / 2, localPosY + 18, { align: 'center' });
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
-        let y = localPosY + 20;
+        let y = localPosY + 28;
         const addField = (label: string, value: string) => {
-          // Espaço de 1mm após os dois pontos
           doc.text(label + ':', localPosX + 8, y, { baseline: 'top' });
           const labelWidth = doc.getTextWidth(label + ':');
-          // 1mm em jsPDF geralmente equivale a 2.83465 unidades
           const space1mm = 2.83;
           doc.text(String(value), localPosX + 8 + labelWidth + space1mm, y, { baseline: 'top' });
           y += 7;
         };
         addField('TÍTULO', recibo.title || '-');
-        // VENCIMENTO (se existir)
-        if (recibo.dueDate) {
-          addField('VENCIMENTO', recibo.dueDate);
-        }
+        if (recibo.dueDate) addField('VENCIMENTO', formatarDataBarra(recibo.dueDate));
         addField('VALOR', 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
         addField('TIPO PAGAMENTO', recibo.modePayment || '-');
-        // Exibir DATA ABERTURA como vem do backend, sem validação/conversão
-        addField('DATA ABERTURA', recibo.openDate || '-');
-        // Exibir TIPO PAGAMENTO como vem do backend, sem conversão
-        addField('TIPO PAGAMENTO', recibo.modePayment || '-');
+        addField('DATA ABERTURA', formatarDataBarra(recibo.datePayment));
         addField('SITUAÇÃO', recibo.situation || '-');
-        // Exibir DATA FECHAMENTO como vem do backend, sem validação/conversão
-        addField('DATA FECHAMENTO', recibo.dateClose || '-');
+        addField('DATA FECHAMENTO', formatarDataBarra(recibo.dateClose));
         addField('NOME', recibo.personName || '-');
         addField('ENDEREÇO', recibo.adress || '-');
-        if (recibo.obs) {
-          addField('OBSERVAÇÕES', String(recibo.obs));
-        }
+        if (recibo.obs) addField('OBSERVAÇÕES', String(recibo.obs));
         doc.setFontSize(8);
         doc.setTextColor(80, 80, 200);
         doc.text('https://recantodeitapua.com.br', localPosX + 8, localPosY + reciboHeight - 7);
@@ -691,7 +682,7 @@ export default function Pagamentos() {
                     onClick={() => {
                       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
                       const reciboWidth = 190;
-                      const reciboHeight = 93;
+                      const reciboHeight = 90;
                       const localPosX = 10;
                       const localPosY = 10;
                       doc.setLineDashPattern([2, 2], 0);
@@ -701,11 +692,9 @@ export default function Pagamentos() {
                       doc.setFont('helvetica', 'bold');
                       doc.setFontSize(11);
                       doc.text('Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã', localPosX + reciboWidth / 2, localPosY + 8, { align: 'center' });
-                      doc.setFontSize(13);
-                      doc.text('RECIBO', localPosX + reciboWidth / 2, localPosY + 18, { align: 'center' });
                       doc.setFont('helvetica', 'normal');
                       doc.setFontSize(10);
-                      let y = localPosY + 28;
+                      let y = localPosY + 16;
                       const addField = (label: string, value: string) => {
                         doc.text(label + ':', localPosX + 8, y, { baseline: 'top' });
                         const labelWidth = doc.getTextWidth(label + ':');
