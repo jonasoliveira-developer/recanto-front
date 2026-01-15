@@ -12,6 +12,31 @@ import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
 export default function Pagamentos() {
+        // Filtros de data inicial/final (mês/ano)
+        const meses = [
+          { value: '01', label: 'Janeiro' },
+          { value: '02', label: 'Fevereiro' },
+          { value: '03', label: 'Março' },
+          { value: '04', label: 'Abril' },
+          { value: '05', label: 'Maio' },
+          { value: '06', label: 'Junho' },
+          { value: '07', label: 'Julho' },
+          { value: '08', label: 'Agosto' },
+          { value: '09', label: 'Setembro' },
+          { value: '10', label: 'Outubro' },
+          { value: '11', label: 'Novembro' },
+          { value: '12', label: 'Dezembro' },
+        ];
+        const anoAtual = new Date().getFullYear();
+        const anos = Array.from({ length: 11 }, (_, i) => anoAtual - 5 + i);
+        // Estado dos selects de filtro
+        const [mesInicial, setMesInicial] = useState(() => String(new Date().getMonth() + 1).padStart(2, '0'));
+        const [anoInicial, setAnoInicial] = useState(() => String(anoAtual));
+        // Data final: 1 mês depois do mês atual
+        const nextMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+        const [mesFinal, setMesFinal] = useState(() => String(nextMonth.getMonth() + 1).padStart(2, '0'));
+        const [anoFinal, setAnoFinal] = useState(() => String(nextMonth.getFullYear()));
+
       // Contexto de autenticação (ajuste conforme seu contexto real)
       const { token } = useAuth ? useAuth() : { token: null };
 
@@ -225,22 +250,40 @@ export default function Pagamentos() {
 
   // ...restante do código da função Pagamentos...
 
-  // Filtragem por busca e situação
+  // Filtragem por data de abertura (datePayment)
+  function parseDataInicio(mes: string, ano: string) {
+    // Retorna Date do primeiro dia do mês
+    return new Date(Number(ano), Number(mes) - 1, 1, 0, 0, 0, 0);
+  }
+  function parseDataFim(mes: string, ano: string) {
+    // Retorna Date do último dia do mês
+    return new Date(Number(ano), Number(mes), 0, 23, 59, 59, 999);
+  }
+  function parseDataPagamento(data: string) {
+    // data no formato dd-MM-yyyy
+    if (!data || typeof data !== 'string') return null;
+    const partes = data.split('-');
+    if (partes.length !== 3) return null;
+    return new Date(Number(partes[2]), Number(partes[1]) - 1, Number(partes[0]), 12, 0, 0, 0);
+  }
+  const dataInicioFiltro = parseDataInicio(mesInicial, anoInicial);
+  const dataFimFiltro = parseDataFim(mesFinal, anoFinal);
   const pagamentosFiltrados = pagamentos.filter((pagamento) => {
+    const dataPag = parseDataPagamento(pagamento.datePayment);
+    if (!dataPag) return false;
+    if (dataPag < dataInicioFiltro || dataPag > dataFimFiltro) return false;
+    // Filtro de busca e situação
     const termo = busca.toLowerCase();
     const textoOk =
       !termo ||
       pagamento.title?.toLowerCase().includes(termo) ||
       pagamento.personName?.toLowerCase().includes(termo);
-
-    // Filtro de situação: '' = todos, '0' = aberto, '1' = fechado
     let situacaoOk = true;
     if (situacaoFiltro === '0') {
       situacaoOk = String(pagamento.situation) === '0';
     } else if (situacaoFiltro === '1') {
       situacaoOk = String(pagamento.situation) === '1';
     }
-
     return textoOk && situacaoOk;
   });
 
@@ -265,13 +308,38 @@ export default function Pagamentos() {
         <h1 className="text-2xl font-bold text-pink-900 mb-6">Pagamentos</h1>
         <section className="rounded-lg bg-white p-4 mb-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <div className="flex flex-row gap-2 w-full order-1 md:order-0">
+            {/* Filtros de data inicial/final */}
+            <div className="flex flex-row gap-2 w-full order-1 md:order-0 items-end flex-wrap">
+              <div className="flex flex-col">
+                <label className="text-xs text-gray-600 mb-1">Data Inicial</label>
+                <div className="flex gap-1">
+                  <select value={mesInicial} onChange={e => setMesInicial(e.target.value)} className="rounded border px-2 py-1">
+                    {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                  </select>
+                  <select value={anoInicial} onChange={e => setAnoInicial(e.target.value)} className="rounded border px-2 py-1">
+                    {anos.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+              </div>
+              <span className="mx-1">até</span>
+              <div className="flex flex-col">
+                <label className="text-xs text-gray-600 mb-1">Data Final</label>
+                <div className="flex gap-1">
+                  <select value={mesFinal} onChange={e => setMesFinal(e.target.value)} className="rounded border px-2 py-1">
+                    {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                  </select>
+                  <select value={anoFinal} onChange={e => setAnoFinal(e.target.value)} className="rounded border px-2 py-1">
+                    {anos.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+              </div>
+              {/* Busca e situação */}
               <input
                 type="text"
                 value={busca}
                 onChange={aoBuscar}
                 placeholder="Buscar por título ou pessoa"
-                className="rounded border px-3 py-2 grow min-w-0"
+                className="rounded border px-3 py-2 grow min-w-0 ml-4"
               />
               <select
                 value={situacaoFiltro}
@@ -327,10 +395,10 @@ export default function Pagamentos() {
                   </button>
                 </div>
                 <div className="space-y-6 flex-1">
-                  {pagamentos.length === 0 && (
+                  {pagamentosFiltrados.length === 0 && (
                     <div className="text-center text-gray-500">Nenhum pagamento encontrado.</div>
                   )}
-                  {pagamentos.map((recibo, idx) => (
+                  {pagamentosFiltrados.map((recibo, idx) => (
                     <div key={recibo.id || idx} className="border rounded p-4 bg-gray-50">
                       <div className="font-bold text-pink-800 mb-2">Recibo #{recibo.id}</div>
                       <div><b>TÍTULO:</b> {recibo.title || '-'}</div>
