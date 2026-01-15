@@ -1,10 +1,9 @@
-  // Filtro de situação: '' = todos, '0' = aberto, '1' = fechado
-
 "use client";
-import { FaRegFileAlt, FaPrint } from "react-icons/fa";
 import { useEffect, useState } from "react";
+import { FaRegFileAlt, FaPrint } from "react-icons/fa";
+import { jsPDF } from "jspdf";
+import dayjs from "dayjs";
 import { listarPagamentos, criarPagamento, atualizarPagamento, removerPagamento } from "../../services/pagamentosApi";
-
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAuth } from "../../context/AuthContext";
@@ -12,13 +11,22 @@ import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
 export default function Pagamentos() {
-      // Filtro de situação: '' = todos, '0' = aberto, '1' = fechado
-      const [situacaoFiltro, setSituacaoFiltro] = useState('');
-    // Função para abrir o modal de recibo
-    function abrirRecibo(pagamento: any) {
-      setPagamentoRecibo(pagamento);
-      setReciboAberto(true);
-    }
+  // Estado do modal de recibos em lote
+  const [modalRecibosAberto, setModalRecibosAberto] = useState(false);
+  const [dataInicial, setDataInicial] = useState("");
+  const [dataFinal, setDataFinal] = useState("");
+  const [situacaoRecibo, setSituacaoRecibo] = useState("");
+  const [paginaRecibos, setPaginaRecibos] = useState(1);
+  const itensPorPaginaRecibo = 16;
+  // Filtro de situação: '' = todos, '0' = aberto, '1' = fechado
+  const [situacaoFiltro, setSituacaoFiltro] = useState('');
+  // Função para abrir o modal de recibo
+  const [reciboAberto, setReciboAberto] = useState(false);
+  const [pagamentoRecibo, setPagamentoRecibo] = useState<any | null>(null);
+  function abrirRecibo(pagamento: any) {
+    setPagamentoRecibo(pagamento);
+    setReciboAberto(true);
+  }
   // Mapeamento de códigos para nomes de situação
   const opcoesSituacao = [
     { codigo: "PAID", nome: "Pago" },
@@ -27,17 +35,11 @@ export default function Pagamentos() {
   ];
   const [pagamentos, definirPagamentos] = useState<any[]>([]);
   const [modalAberto, definirModalAberto] = useState(false);
-
-  // Estado do recibo
-  const [reciboAberto, setReciboAberto] = useState(false);
-  const [pagamentoRecibo, setPagamentoRecibo] = useState<any | null>(null);
-
   const [carregando, definirCarregando] = useState(false);
   const [busca, definirBusca] = useState("");
   const [paginaAtual, definirPaginaAtual] = useState(1);
   const itensPorPagina = 10;
   const { token } = useAuth();
-
   // Estados do formulário/modal
   const [editando, setEditando] = useState<any | null>(null);
   const [titulo, setTitulo] = useState("");
@@ -219,14 +221,158 @@ export default function Pagamentos() {
                 <option value="1">Fechado</option>
               </select>
             </div>
-            <button
-              className="rounded-lg bg-pink-600 px-4 py-2 text-white shadow hover:bg-pink-700 cursor-pointer md:ml-2"
-              onClick={abrirModalNovo}
-            >
-              Novo
-            </button>
+            <div className="flex flex-row gap-2">
+              <button
+                className="rounded-lg bg-pink-600 px-4 py-2 text-white shadow hover:bg-pink-700 cursor-pointer"
+                onClick={abrirModalNovo}
+              >
+                Novo
+              </button>
+              <button
+                className="rounded-lg bg-blue-600 px-4 py-2 text-white shadow hover:bg-blue-700 cursor-pointer flex items-center gap-2"
+                onClick={() => setModalRecibosAberto(true)}
+                title="Gerar recibos em lote"
+              >
+                <FaRegFileAlt /> Recibos
+              </button>
+            </div>
           </div>
         </section>
+            {/* Modal de recibos em lote */}
+            <Modal aberto={modalRecibosAberto} aoFechar={() => setModalRecibosAberto(false)} titulo="Recibos em lote">
+              <div className="flex flex-col gap-6">
+                {/* Cabeçalho de filtros */}
+                {(() => {
+                  // Filtro de recibos para o modal
+                  let recibosFiltrados = pagamentos;
+                  if (dataInicial) {
+                    const [dia, mes, ano] = dataInicial.split("/");
+                    const dataIni = dayjs(`${ano}-${mes}-${dia}`);
+                    recibosFiltrados = recibosFiltrados.filter(r => r.datePayment && dayjs(r.datePayment).isAfter(dataIni.subtract(1, 'day')));
+                  }
+                  if (dataFinal) {
+                    const [dia, mes, ano] = dataFinal.split("/");
+                    const dataFim = dayjs(`${ano}-${mes}-${dia}`);
+                    recibosFiltrados = recibosFiltrados.filter(r => r.datePayment && dayjs(r.datePayment).isBefore(dataFim.add(1, 'day')));
+                  }
+                  if (situacaoRecibo === '0') {
+                    recibosFiltrados = recibosFiltrados.filter(r => String(r.situation) === '0');
+                  } else if (situacaoRecibo === '1') {
+                    recibosFiltrados = recibosFiltrados.filter(r => String(r.situation) === '1');
+                  }
+                  // Paginação
+                  const totalPaginasRecibo = Math.ceil(recibosFiltrados.length / itensPorPaginaRecibo) || 1;
+                  const inicioRecibo = (paginaRecibos - 1) * itensPorPaginaRecibo;
+                  const fimRecibo = inicioRecibo + itensPorPaginaRecibo;
+                  const recibosPaginados = recibosFiltrados.slice(inicioRecibo, fimRecibo);
+                  return (
+                    <>
+                      <div className="flex flex-row flex-wrap gap-4 items-end bg-gray-50 p-4 rounded-lg mb-4 w-full justify-between">
+                        <div className="flex flex-row flex-1 gap-4">
+                          <div className="flex flex-col flex-1 min-w-[120px]">
+                            <label className="text-xs font-semibold mb-1">Data inicial</label>
+                            <input
+                              type="text"
+                              placeholder="dd/MM/aaaa"
+                              value={dataInicial}
+                              onChange={e => setDataInicial(e.target.value)}
+                              className="rounded border px-2 py-1 w-full"
+                              maxLength={10}
+                            />
+                          </div>
+                          <div className="flex flex-col flex-1 min-w-[120px]">
+                            <label className="text-xs font-semibold mb-1">Data final</label>
+                            <input
+                              type="text"
+                              placeholder="dd/MM/aaaa"
+                              value={dataFinal}
+                              onChange={e => setDataFinal(e.target.value)}
+                              className="rounded border px-2 py-1 w-full"
+                              maxLength={10}
+                            />
+                          </div>
+                          <div className="flex flex-col flex-1 min-w-[120px]">
+                            <label className="text-xs font-semibold mb-1">Situação</label>
+                            <select
+                              value={situacaoRecibo}
+                              onChange={e => setSituacaoRecibo(e.target.value)}
+                              className="rounded border px-2 py-1 w-full"
+                            >
+                              <option value="">Todos</option>
+                              <option value="0">Aberto</option>
+                              <option value="1">Fechado</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="flex flex-row gap-2 items-end mt-0">
+                          {recibosPaginados.length > 0 && (
+                            <button
+                              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow h-10"
+                              onClick={() => window.print()}
+                            >
+                              <FaPrint /> Imprimir recibos
+                            </button>
+                          )}
+                          <button onClick={() => setModalRecibosAberto(false)} className="text-gray-500 hover:text-gray-700 text-2xl leading-none px-2 pb-1 h-10">×</button>
+                        </div>
+                      </div>
+                      {/* ...botão de imprimir agora só no cabeçalho... */}
+                      {/* Container dos recibos */}
+                      <div className="flex flex-col gap-2 min-h-[200px]">
+                        {recibosPaginados.length === 0 ? (
+                          <div className="text-center text-gray-500">Nenhum recibo encontrado.</div>
+                        ) : recibosPaginados.map((recibo) => {
+                          // Formatação de datas
+                          const dataAbertura = recibo.datePayment ? dayjs(recibo.datePayment).format('DD/MM/YYYY') : '';
+                          const dataFechamento = recibo.finishPayment && recibo.dateClose ? dayjs(recibo.dateClose).format('DD/MM/YYYY') : '';
+                          // Situação
+                          let situacaoLabel = 'Aberto';
+                          if (recibo.situation === 1 || recibo.situation === '1' || recibo.situation === 'PAID') situacaoLabel = 'Pago';
+                          else if (recibo.situation === 0 || recibo.situation === '0' || recibo.situation === 'PENDING') situacaoLabel = 'Aberto';
+                          else if (recibo.situation === 2 || recibo.situation === '2' || recibo.situation === 'CANCELLED') situacaoLabel = 'Cancelado';
+                          return (
+                            <div key={recibo.id} className="border rounded-xl shadow bg-white p-6 max-w-2xl mx-auto relative print:border-black print:shadow-none">
+                              <div className="flex flex-col gap-2">
+                                <div className="text-center text-xl font-bold text-pink-900 mb-4 tracking-wide">RECIBO</div>
+                                <div className="text-base"><span className="font-semibold">TÍTULO:</span> {recibo.title}</div>
+                                {recibo.dueDate && <div className="text-base"><span className="font-semibold">VENCIMENTO:</span> {dayjs(recibo.dueDate).isValid() ? dayjs(recibo.dueDate).format('DD/MM/YYYY') : '-'}</div>}
+                                <div className="text-base"><span className="font-semibold">VALOR:</span> R$ {Number(recibo.cash).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
+                                <div className="text-base"><span className="font-semibold">TIPO PAGAMENTO:</span> {recibo.modePayment || '-'}</div>
+                                <div className="text-base"><span className="font-semibold">DATA ABERTURA:</span> {dataAbertura && dataAbertura !== 'Invalid Date' ? dataAbertura : '-'}</div>
+                                <div className="text-base"><span className="font-semibold">SITUAÇÃO:</span> {situacaoLabel}</div>
+                                <div className="text-base"><span className="font-semibold">DATA FECHAMENTO:</span> {dataFechamento && dataFechamento !== 'Invalid Date' ? dataFechamento : '-'}</div>
+                                <div className="text-base"><span className="font-semibold">NOME:</span> {recibo.personName}</div>
+                                <div className="text-base"><span className="font-semibold">ENDEREÇO:</span> {recibo.adress || '-'}</div>
+                                {recibo.obs && (
+                                  <div className="text-base text-gray-700 mt-2"><span className="font-semibold">OBSERVAÇÕES:</span> {recibo.obs}</div>
+                                )}
+                              </div>
+                              <div className="flex justify-end mt-4">
+                                <span className="text-xs text-gray-400">ID: {recibo.id}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {/* Paginação */}
+                      <div className="flex justify-center items-center gap-2 mt-4">
+                        <button
+                          className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                          onClick={() => setPaginaRecibos(p => Math.max(1, p - 1))}
+                          disabled={paginaRecibos === 1}
+                        >Anterior</button>
+                        <span className="text-sm">Página {paginaRecibos} de {totalPaginasRecibo}</span>
+                        <button
+                          className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                          onClick={() => setPaginaRecibos(p => Math.min(totalPaginasRecibo, p + 1))}
+                          disabled={paginaRecibos === totalPaginasRecibo}
+                        >Próxima</button>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </Modal>
       </header>
       <section className="rounded-lg bg-white p-4">
         {carregando ? (
