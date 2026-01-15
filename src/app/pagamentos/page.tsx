@@ -12,6 +12,125 @@ import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
 export default function Pagamentos() {
+            // Função para gerar PDF do DRE
+            function gerarPdfDRE() {
+              const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+              const pageWidth = 210;
+              const marginX = 10;
+              let y = 15;
+              const itensPorPagina = 25;
+              // Cabeçalho
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(13);
+              doc.text('Associação Comunitária dos Moradores do Loteamento Recanto de Itapuã', pageWidth / 2, y, { align: 'center' });
+              y += 8;
+              doc.setFont('helvetica', 'normal');
+              doc.setFontSize(11);
+              doc.text('Demonstrativo de Resultados (DRE)', pageWidth / 2, y, { align: 'center' });
+              y += 7;
+              doc.setFontSize(9);
+              doc.text(`Período: ${formatarDataBarra(mesInicial + '-' + anoInicial)} a ${formatarDataBarra(mesFinal + '-' + anoFinal)}`, marginX, y);
+              doc.text(`Emitido em: ${dayjs().format('DD/MM/YYYY HH:mm')}`, pageWidth - marginX, y, { align: 'right' });
+              y += 7;
+              // Resumo
+              doc.setFontSize(10);
+              doc.text(`Total de pagamentos: ${qtdTotal}`, marginX, y);
+              doc.text(`Fechados: ${qtdFechados} (R$ ${totalRecebido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`, marginX + 60, y);
+              doc.text(`Abertos: ${qtdAbertos} (R$ ${totalAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`, marginX + 120, y);
+              y += 8;
+              doc.text(`Total geral: R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, marginX, y);
+              y += 10;
+              // Tabela desenhada com linhas verticais e horizontais, agora paginada
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(9);
+              const headers = ['Título', 'Situação', 'Valor', 'Data Pagamento', 'Pessoa'];
+              const colWidths = [50, 28, 22, 28, 72];
+              const colCount = headers.length;
+              const rowHeight = 8;
+              let totalRows = pagamentosFiltrados.length;
+              let pageRows = itensPorPagina;
+              let currentRow = 0;
+              while (currentRow < totalRows) {
+                // Cabeçalho da tabela
+                let x = marginX;
+                let tableY = y;
+                for (let i = 0; i < colCount; i++) {
+                  doc.text(headers[i], x + 2, tableY + 5, { align: 'left' });
+                  x += colWidths[i];
+                }
+                // Linhas verticais do cabeçalho
+                x = marginX;
+                for (let i = 0; i <= colCount; i++) {
+                  let colX = x;
+                  doc.setDrawColor(180);
+                  doc.setLineWidth(0.2);
+                  doc.line(colX, tableY, colX, tableY + rowHeight * Math.min(pageRows, totalRows - currentRow) + rowHeight);
+                  x += (i < colCount ? colWidths[i] : 0);
+                }
+                // Linhas horizontais do cabeçalho
+                doc.setDrawColor(120);
+                doc.setLineWidth(0.4);
+                doc.line(marginX, tableY, pageWidth - marginX, tableY);
+                doc.line(marginX, tableY + rowHeight, pageWidth - marginX, tableY + rowHeight);
+                // Linhas de dados
+                doc.setFont('helvetica', 'normal');
+                for (let i = 0; i < Math.min(pageRows, totalRows - currentRow); i++) {
+                  let p = pagamentosFiltrados[currentRow + i];
+                  let rowY = tableY + rowHeight * (i + 1);
+                  x = marginX;
+                  doc.setFontSize(9);
+                  doc.text(String(p.title || '-'), x + 2, rowY + 5, { maxWidth: colWidths[0] - 4 });
+                  x += colWidths[0];
+                  doc.text(situationReturn(p.situation), x + 2, rowY + 5);
+                  x += colWidths[1];
+                  doc.setFontSize(8);
+                  doc.text('R$ ' + Number(p.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }), x + 2, rowY + 5);
+                  x += colWidths[2];
+                  doc.setFontSize(9);
+                  doc.text(formatarDataBarra(p.datePayment), x + 2, rowY + 5);
+                  x += colWidths[3];
+                  doc.text(String(p.personName || '-'), x + 2, rowY + 5, { maxWidth: colWidths[4] - 4 });
+                  // Linha horizontal inferior da linha
+                  doc.setDrawColor(220);
+                  doc.setLineWidth(0.2);
+                  doc.line(marginX, rowY + rowHeight, pageWidth - marginX, rowY + rowHeight);
+                }
+                y = tableY + rowHeight * (Math.min(pageRows, totalRows - currentRow) + 1);
+                currentRow += pageRows;
+                if (currentRow < totalRows) {
+                  doc.addPage();
+                  y = 15;
+                  // Redesenhar cabeçalho do documento
+                  doc.setFont('helvetica', 'bold');
+                  doc.setFontSize(13);
+                  doc.text('Associação Comunitária dos Moradores do Loteamento Recanto de Itapuã', pageWidth / 2, y, { align: 'center' });
+                  y += 8;
+                  doc.setFont('helvetica', 'normal');
+                  doc.setFontSize(11);
+                  doc.text('Demonstrativo de Resultados (DRE)', pageWidth / 2, y, { align: 'center' });
+                  y += 7;
+                  doc.setFontSize(9);
+                  doc.text(`Período: ${formatarDataBarra(mesInicial + '-' + anoInicial)} a ${formatarDataBarra(mesFinal + '-' + anoFinal)}`, marginX, y);
+                  doc.text(`Emitido em: ${dayjs().format('DD/MM/YYYY HH:mm')}`, pageWidth - marginX, y, { align: 'right' });
+                  y += 7;
+                  doc.setFontSize(10);
+                  doc.text(`Total de pagamentos: ${qtdTotal}`, marginX, y);
+                  doc.text(`Fechados: ${qtdFechados} (R$ ${totalRecebido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`, marginX + 60, y);
+                  doc.text(`Abertos: ${qtdAbertos} (R$ ${totalAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`, marginX + 120, y);
+                  y += 8;
+                  doc.text(`Total geral: R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, marginX, y);
+                  y += 10;
+                }
+              }
+              // Rodapé
+              doc.setFontSize(8);
+              doc.setTextColor(120);
+              doc.text('Documento gerado automaticamente pelo sistema Recanto de Itapuã.', pageWidth / 2, 295, { align: 'center' });
+              doc.setTextColor(0);
+              window.open(doc.output('bloburl'), '_blank');
+            }
+          // Estado para modal DRE
+          const [modalDREAberto, setModalDREAberto] = useState(false);
         // Filtros de data inicial/final (mês/ano)
         const meses = [
           { value: '01', label: 'Janeiro' },
@@ -154,7 +273,12 @@ export default function Pagamentos() {
       }
 
       // Funções placeholder para PDF (não implementadas)
-      function gerarPdfRelatorioDRE() { toast.info("Função de relatório DRE não implementada."); }
+      function gerarPdfRelatorioDRE() {
+        setModalDREAberto(true);
+      }
+        // ...existing code...
+
+
       function gerarPdfRecibosLote() {
         if (!pagamentos.length) {
           toast.info("Nenhum pagamento para recibo.");
@@ -181,7 +305,7 @@ export default function Pagamentos() {
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(10);
           let y = posY + 16;
-          const addField = (label, value) => {
+          const addField = (label: string, value: string) => {
             doc.text(label + ':', localPosX + 8, y, { baseline: 'top' });
             const labelWidth = doc.getTextWidth(label + ':');
             const space1mm = 2.83;
@@ -286,6 +410,14 @@ export default function Pagamentos() {
     }
     return textoOk && situacaoOk;
   });
+
+  // Cálculo do demonstrativo DRE (deve vir após pagamentosFiltrados)
+  const totalRecebido = pagamentosFiltrados.filter(p => p.situation === 1).reduce((acc, p) => acc + Number(p.cash || 0), 0);
+  const totalAberto = pagamentosFiltrados.filter(p => p.situation === 0).reduce((acc, p) => acc + Number(p.cash || 0), 0);
+  const total = pagamentosFiltrados.reduce((acc, p) => acc + Number(p.cash || 0), 0);
+  const qtdFechados = pagamentosFiltrados.filter(p => p.situation === 1).length;
+  const qtdAbertos = pagamentosFiltrados.filter(p => p.situation === 0).length;
+  const qtdTotal = pagamentosFiltrados.length;
 
   // Paginação
   const totalPaginas = Math.ceil(pagamentosFiltrados.length / itensPorPagina);
@@ -430,63 +562,65 @@ export default function Pagamentos() {
         ) : (
           <>
             {/* Tabela em tela grande, cards em tela pequena */}
-            <div className="hidden md:block">
-              <table className="min-w-full border rounded-lg overflow-hidden">
-                <thead className="bg-pink-100">
-                  <tr>
-                    <th className="px-4 py-2 text-left">Título</th>
-                    <th className="px-4 py-2 text-left">Situação</th>
-                    <th className="px-4 py-2 text-left">Valor</th>
-                    <th className="px-4 py-2 text-left">Pessoa</th>
-                    <th className="px-4 py-2 text-left">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagamentosPaginados.map((pagamento) => {
-                    return (
-                      <tr key={pagamento.id} className="border-b transition-colors duration-200 hover:bg-pink-50 cursor-pointer">
-                        <td className="px-4 py-2 font-bold text-pink-800">{pagamento.title}</td>
-                        <td className="px-4 py-2">{
-                          pagamento.situation === 0 ? 'Aberto' : pagamento.situation === 1 ? 'Fechado' : pagamento.situation
-                        }</td>
-                        <td className="px-4 py-2">R$ {pagamento.cash}</td>
-                        <td className="px-4 py-2">{pagamento.personName}</td>
-                        <td className="px-4 py-2 flex gap-2 items-center">
-                          <button
-                            className="rounded bg-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-300 mr-2"
-                            title="Imprimir recibo"
-                            onClick={() => abrirRecibo(pagamento)}
-                          >
-                            <FaRegFileAlt />
-                          </button>
-                          <button
-                            className="rounded bg-pink-500 px-3 py-1 text-white hover:bg-pink-700 cursor-pointer mr-2"
-                            onClick={() => abrirModalEditar(pagamento)}
-                          >Editar</button>
-                          <button
-                            className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-800 cursor-pointer"
-                            onClick={async () => {
-                              if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
-                                try {
-                                  if (!token) {
-                                    toast.error("Token de autenticação não encontrado.");
-                                    return;
+            <div className="hidden md:flex justify-center w-full">
+              <div className="w-full mx-auto">
+                <table className="min-w-[700px] w-full border rounded-lg overflow-hidden">
+                  <thead className="bg-pink-100">
+                    <tr>
+                      <th className="px-4 py-2 text-left">Título</th>
+                      <th className="px-4 py-2 text-center">Situação</th>
+                      <th className="px-4 py-2 text-right">Valor</th>
+                      <th className="px-4 py-2 text-left">Pessoa</th>
+                      <th className="px-4 py-2 text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagamentosPaginados.map((pagamento) => {
+                      return (
+                        <tr key={pagamento.id} className="border-b transition-colors duration-200 hover:bg-pink-50 cursor-pointer">
+                          <td className="px-4 py-2 font-bold text-pink-800 text-left">{pagamento.title}</td>
+                          <td className="px-4 py-2 text-center">{
+                            pagamento.situation === 0 ? 'Aberto' : pagamento.situation === 1 ? 'Fechado' : pagamento.situation
+                          }</td>
+                          <td className="px-4 py-2 text-right">R$ {pagamento.cash}</td>
+                          <td className="px-4 py-2 text-left">{pagamento.personName}</td>
+                          <td className="px-4 py-2 flex gap-2 items-center justify-center">
+                            <button
+                              className="rounded bg-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-300 mr-2"
+                              title="Imprimir recibo"
+                              onClick={() => abrirRecibo(pagamento)}
+                            >
+                              <FaRegFileAlt />
+                            </button>
+                            <button
+                              className="rounded bg-pink-500 px-3 py-1 text-white hover:bg-pink-700 cursor-pointer mr-2"
+                              onClick={() => abrirModalEditar(pagamento)}
+                            >Editar</button>
+                            <button
+                              className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-800 cursor-pointer"
+                              onClick={async () => {
+                                if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
+                                  try {
+                                    if (!token) {
+                                      toast.error("Token de autenticação não encontrado.");
+                                      return;
+                                    }
+                                    await removerPagamento(pagamento.id, token || "");
+                                    toast.success("Pagamento excluído com sucesso!");
+                                    await carregarPagamentos();
+                                  } catch (erro: any) {
+                                    toast.error("Erro ao excluir pagamento! " + (erro?.response?.data?.message || ""));
                                   }
-                                  await removerPagamento(pagamento.id, token || "");
-                                  toast.success("Pagamento excluído com sucesso!");
-                                  await carregarPagamentos();
-                                } catch (erro: any) {
-                                  toast.error("Erro ao excluir pagamento! " + (erro?.response?.data?.message || ""));
                                 }
-                              }
-                            }}
-                          >Excluir</button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                              }}
+                            >Excluir</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
             <ul className="flex flex-col gap-4 md:hidden">
               {pagamentosPaginados.map((pagamento) => (
@@ -623,6 +757,70 @@ export default function Pagamentos() {
           <button type="submit" className="rounded bg-pink-600 px-4 py-2 text-white hover:bg-pink-700 cursor-pointer">Salvar</button>
         </form>
         <ToastContainer position="top-right" autoClose={2000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
+      </Modal>
+      {/* Modal DRE - demonstrativo de resultados do exercício */}
+      <Modal aberto={modalDREAberto} aoFechar={() => setModalDREAberto(false)} titulo="Demonstrativo de Resultados (DRE)">
+        <div className="max-w-5xl mx-auto p-8 bg-white print:p-4 rounded shadow print:shadow-none border print:border-0">
+          <div className="flex justify-end mb-4 print:hidden">
+            <button
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow flex items-center gap-2"
+              onClick={gerarPdfDRE}
+              title="Imprimir demonstrativo em PDF"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2h-2m-6 0v4m0 0h4m-4 0H8" /></svg>
+              Imprimir PDF
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 text-base">
+            <div className="bg-pink-50 rounded p-3 text-center border">
+              <div className="text-xs text-gray-500">Total de pagamentos</div>
+              <div className="font-bold text-lg">{qtdTotal}</div>
+            </div>
+            <div className="bg-green-50 rounded p-3 text-center border">
+              <div className="text-xs text-gray-500">Pagamentos fechados</div>
+              <div className="font-bold text-lg">{qtdFechados}</div>
+              <div className="text-xs text-gray-600">R$ {totalRecebido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+            </div>
+            <div className="bg-yellow-50 rounded p-3 text-center border">
+              <div className="text-xs text-gray-500">Pagamentos abertos</div>
+              <div className="font-bold text-lg">{qtdAbertos}</div>
+              <div className="text-xs text-gray-600">R$ {totalAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+            </div>
+            <div className="bg-blue-50 rounded p-3 text-center border">
+              <div className="text-xs text-gray-500">Total geral</div>
+              <div className="font-bold text-lg">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+            </div>
+          </div>
+          <h3 className="text-md font-semibold mb-4 text-pink-800 border-b pb-2">Pagamentos detalhados</h3>
+          <table className="min-w-full text-xs print:text-xs border-t border-b mb-2">
+            <thead className="bg-pink-100">
+              <tr>
+                <th className="px-4 py-3 border text-left">Título</th>
+                <th className="px-4 py-3 border text-center">Situação</th>
+                <th className="px-4 py-3 border text-right">Valor</th>
+                <th className="px-4 py-3 border text-center">Data Pagamento</th>
+                <th className="px-4 py-3 border text-left">Pessoa</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagamentosFiltrados.map((p, idx) => (
+                <>
+                  <tr key={p.id} className="align-middle">
+                    <td className="px-4 py-3 border text-left whitespace-nowrap">{p.title}</td>
+                    <td className="px-4 py-3 border text-center whitespace-nowrap">{situationReturn(p.situation)}</td>
+                    <td className="px-4 py-3 border text-right whitespace-nowrap">R$ {Number(p.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-3 border text-center whitespace-nowrap">{formatarDataBarra(p.datePayment)}</td>
+                    <td className="px-4 py-3 border text-left whitespace-nowrap text-[10px] text-gray-700">{p.personName}</td>
+                  </tr>
+                  <tr key={p.id + '-line'}>
+                    <td colSpan={5} className="border-b-2 border-gray-200"></td>
+                  </tr>
+                </>
+              ))}
+            </tbody>
+          </table>
+          <div className="text-xs text-gray-400 mt-4">Documento gerado automaticamente pelo sistema Recanto de Itapuã.</div>
+        </div>
       </Modal>
     </div>
   );
