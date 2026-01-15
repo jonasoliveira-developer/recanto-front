@@ -474,79 +474,20 @@ export default function Pagamentos() {
                         {recibosPaginados.length === 0 ? (
                           <div className="text-center text-gray-500">Nenhum recibo encontrado.</div>
                         ) : recibosPaginados.map((recibo) => {
-                          // Formatação de datas
-                          const dataAbertura = formatarDataBarra(recibo.datePayment);
-                          const dataFechamento = formatarDataBarra(recibo.dateClose);
-                          // Situação
-                          let situacaoLabel = 'Aberto';
-                          if (recibo.situation === 1 || recibo.situation === '1' || recibo.situation === 'PAID') situacaoLabel = 'Pago';
-                          else if (recibo.situation === 0 || recibo.situation === '0' || recibo.situation === 'PENDING') situacaoLabel = 'Aberto';
-                          else if (recibo.situation === 2 || recibo.situation === '2' || recibo.situation === 'CANCELLED') situacaoLabel = 'Cancelado';
-                          // Função para imprimir apenas este recibo
-                          const imprimirReciboUnico = () => {
-                            const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-                            const reciboWidth = 190;
-                            const reciboHeight = 93;
-                            const localPosX = 10;
-                            const localPosY = 10;
-                            // Borda pontilhada
-                            doc.setLineDashPattern([2, 2], 0);
-                            doc.setDrawColor(120);
-                            doc.roundedRect(localPosX, localPosY, reciboWidth, reciboHeight, 4, 4, 'S');
-                            doc.setLineDashPattern([], 0);
-                            // Título
-                            doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(13);
-                            doc.text('RECIBO', localPosX + reciboWidth / 2, localPosY + 10, { align: 'center' });
-                            doc.setFont('helvetica', 'normal');
-                            doc.setFontSize(10);
-                            let y = localPosY + 20;
-                            const addField = (label: string, value: string) => {
-                              doc.text(label + ':', localPosX + 8, y, { baseline: 'top' });
-                              const labelWidth = doc.getTextWidth(label + ':');
-                              const space1mm = 2.83;
-                              doc.text(String(value), localPosX + 8 + labelWidth + space1mm, y, { baseline: 'top' });
-                              y += 7;
-                            };
-                            addField('TÍTULO', recibo.title || '-');
-                            if (recibo.dueDate) addField('VENCIMENTO', formatarDataBarra(recibo.dueDate));
-                            addField('VALOR', 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-                            addField('TIPO PAGAMENTO', recibo.modePayment || '-');
-                            addField('DATA ABERTURA', formatarDataBarra(recibo.datePayment));
-                            addField('SITUAÇÃO', situacaoLabel);
-                            addField('DATA FECHAMENTO', formatarDataBarra(recibo.dateClose));
-                            addField('NOME', recibo.personName || '-');
-                            addField('ENDEREÇO', recibo.adress || '-');
-                            if (recibo.obs) addField('OBSERVAÇÕES', String(recibo.obs));
-                            doc.setFontSize(8);
-                            doc.setTextColor(80, 80, 200);
-                            doc.text('https://recantodeitapua.com.br', localPosX + 8, localPosY + reciboHeight - 7);
-                            doc.setTextColor(120);
-                            doc.setFontSize(7);
-                            doc.text('ID: ' + recibo.id, localPosX + reciboWidth - 40, localPosY + reciboHeight - 7);
-                            doc.setFontSize(10);
-                            doc.setTextColor(0);
-                            window.open(doc.output('bloburl'), '_blank');
-                          };
+                          // ...existing code...
                           return (
-                            <div key={recibo.id} className="border rounded-lg shadow bg-white p-2 max-w-[420px] mx-auto relative print:border-black print:shadow-none text-[12px] leading-tight h-[250px] flex flex-col justify-between print:rounded print:border print:border-dashed print:border-gray-400 print:p-2">
-                              <div className="flex flex-col gap-[2px]">
-                                <div className="text-center text-[14px] font-bold text-pink-900 mb-[3px] tracking-wide">RECIBO</div>
-                                <div><span className="font-semibold">TÍTULO:</span> {recibo.title}</div>
-                                {recibo.dueDate && <div><span className="font-semibold">VENCIMENTO:</span> {formatarDataBarra(recibo.dueDate)}</div>}
-                                <div><span className="font-semibold">VALOR:</span> R$ {Number(recibo.cash).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</div>
-                                <div><span className="font-semibold">TIPO PAGAMENTO:</span> {recibo.modePayment || '-'}</div>
-                                <div><span className="font-semibold">DATA ABERTURA:</span> {formatarDataBarra(recibo.datePayment)}</div>
-                                <div><span className="font-semibold">SITUAÇÃO:</span> {situacaoLabel}</div>
-                                <div><span className="font-semibold">DATA FECHAMENTO:</span> {(recibo.finishPayment && recibo.dateClose) ? formatarDataBarra(recibo.dateClose) : '-'}</div>
-                                <div><span className="font-semibold">NOME:</span> {recibo.personName}</div>
-                                <div><span className="font-semibold">ENDEREÇO:</span> {recibo.adress || '-'}</div>
-                                {recibo.obs && (
-                                  <div className="text-gray-700 mt-[2px]"><span className="font-semibold">OBSERVAÇÕES:</span> {recibo.obs}</div>
-                                )}
-                              </div>
-                              <div className="flex justify-end items-end mt-[3px]">
-                                <span className="text-[10px] text-gray-400">ID: {recibo.id}</span>
+                            <div key={recibo.id} className="border rounded-lg shadow bg-white p-2 max-w-[600px] w-full mx-auto relative print:border-black print:shadow-none text-[12px] leading-tight h-[320px] flex flex-col justify-between print:rounded print:border print:border-dashed print:border-gray-400 print:p-2">
+                              <div className="flex flex-col gap-2 text-base">
+                                <div><b>TÍTULO:</b> {recibo.title || '-'}</div>
+                                <div><b>VALOR:</b> {recibo.cash !== undefined ? 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</div>
+                                <div><b>TIPO PAGAMENTO:</b> {modePaymentReturn(recibo.modePayment)}</div>
+                                <div><b>DATA PAGAMENTO:</b> {formatarDataBarra(recibo.datePayment)}</div>
+                                <div><b>DATA FECHAMENTO:</b> {formatarDataBarra(recibo.finishPayment)}</div>
+                                <div><b>SITUAÇÃO:</b> {situationReturn(recibo.situation)}</div>
+                                <div><b>NOME:</b> {recibo.personName || '-'}</div>
+                                <div><b>ENDEREÇO:</b> {recibo.adress || '-'}</div>
+                                <div><b>OBSERVAÇÕES:</b> {recibo.obs || '-'}</div>
+                                <div className="text-xs text-gray-400 mt-2">ID: {recibo.id}</div>
                               </div>
                             </div>
                           );
