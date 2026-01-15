@@ -12,119 +12,151 @@ import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
 export default function Pagamentos() {
-                  // Função para trocar '-' por '/' em datas
-                  function formatarDataBarra(data: string | undefined) {
-                    if (!data) return '-';
-                    return String(data).replace(/-/g, '/');
-                  }
-                function modePaymentReturn(mode: string | number) {
-                  if (mode === "0" || mode === 0) return "DINHEIRO";
-                  if (mode === "1" || mode === 1) return "CARTÃO";
-                  if (mode === "2" || mode === 2) return "PIX";
-                  return "-";
-                }
-              function situationReturn(situation: string | number) {
-                if (situation === 0 || situation === "0") return "ABERTO";
-                if (situation === 1 || situation === "1") return "FECHADO";
-                return "-";
-              }
-          // Função para abrir o modal de recibo individual (garantir escopo global do componente)
-          const [reciboAberto, setReciboAberto] = useState(false);
-          const [pagamentoRecibo, setPagamentoRecibo] = useState<any | null>(null);
-          function abrirRecibo(pagamento: any) {
-            setPagamentoRecibo(pagamento);
-            setReciboAberto(true);
+      // Contexto de autenticação (ajuste conforme seu contexto real)
+      const { token } = useAuth ? useAuth() : { token: null };
+
+      // Carregar pagamentos (mock inicial)
+      async function carregarPagamentos() {
+        setCarregando(true);
+        try {
+            const lista = await listarPagamentos(token || "");
+          setPagamentos(lista || []);
+        } catch (e) {
+          toast.error("Erro ao carregar pagamentos!");
+        } finally {
+          setCarregando(false);
+        }
+      }
+
+      useEffect(() => {
+        carregarPagamentos();
+      }, []);
+
+      // Abrir modal novo
+      function abrirModalNovo() {
+        setEditando(null);
+        definirModalAberto(true);
+        setTitulo("");
+        setDataPagamento("");
+        setSituacao("");
+        setModoPagamento("");
+        setValor("");
+        setDesconto("");
+        setFinalizado(false);
+        setObs("");
+        setPessoa("");
+        setNomePessoa("");
+        setEndereco("");
+      }
+
+      // Abrir modal editar
+      function abrirModalEditar(pagamento: any) {
+        setEditando(pagamento);
+        definirModalAberto(true);
+        setTitulo(pagamento.title || "");
+        setDataPagamento(pagamento.datePayment || "");
+        setSituacao(String(pagamento.situation ?? ""));
+        setModoPagamento(pagamento.modePayment || "");
+        setValor(pagamento.cash || "");
+        setDesconto(pagamento.discount || "");
+        setFinalizado(pagamento.situation === 1);
+        setObs(pagamento.obs || "");
+        setPessoa(pagamento.personId || "");
+        setNomePessoa(pagamento.personName || "");
+        setEndereco(pagamento.adress || "");
+      }
+
+      // Abrir recibo
+      function abrirRecibo(pagamento: any) {
+        setPagamentoRecibo(pagamento);
+        setReciboAberto(true);
+      }
+
+      // Funções auxiliares para exibição
+      function modePaymentReturn(mode: any) {
+        if (mode === undefined || mode === null) return '-';
+        if (typeof mode === 'string') return mode;
+        if (mode === 0) return 'Dinheiro';
+        if (mode === 1) return 'Pix';
+        if (mode === 2) return 'Cartão';
+        return String(mode);
+      }
+      function situationReturn(sit: any) {
+        if (sit === 0) return 'Aberto';
+        if (sit === 1) return 'Fechado';
+        return String(sit ?? '-');
+      }
+
+      // Handler do submit do formulário
+      async function handleSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        try {
+          if (editando) {
+            await atualizarPagamento(editando.id, {
+              title: titulo,
+              datePayment: dataPagamento,
+              situation: situacao,
+              modePayment: modoPagamento,
+              cash: valor,
+              discount: desconto,
+              obs,
+              personId: pessoa,
+              personName: nomePessoa,
+              adress: endereco,
+              }, token || "");
+            toast.success("Pagamento atualizado!");
+          } else {
+            await criarPagamento({
+              title: titulo,
+              datePayment: dataPagamento,
+              situation: situacao,
+              modePayment: modoPagamento,
+              cash: valor,
+              discount: desconto,
+              obs,
+              personId: pessoa,
+              personName: nomePessoa,
+              adress: endereco,
+              }, token || "");
+            toast.success("Pagamento criado!");
           }
-    // Função para gerar PDF do relatório DRE
-    function gerarPdfRelatorioDRE(pagamentos: any[]) {
-      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-      const pageWidth = 210;
-      let y = 16;
-      // Definição das larguras das colunas
-      const colTitleX = 12;      // Título começa mais à esquerda
-      const colTitleW = 70;      // Mais espaço para título
-      const colSituacaoX = colTitleX + colTitleW + 2; // Situação logo após título
-      const colSituacaoW = 18;   // Menos espaço para situação
-      const colValorX = colSituacaoX + colSituacaoW + 2;
-      const colValorW = 22;      // Menos espaço para valor
-      const colPessoaX = colValorX + colValorW + 2;
-      const colPessoaW = 65;     // Mais espaço para nome
-      // Cabeçalho
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text('Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã', pageWidth / 2, y, { align: 'center' });
-      y += 7;
-      doc.setFontSize(11); // Título menor
-      doc.text('Relatório DRE - Demonstrativo de Resultados', pageWidth / 2, y, { align: 'center' });
-      y += 7;
-      doc.setFontSize(7); // Data emissão menor
-      doc.setFont('helvetica', 'normal');
-      doc.text('Data de emissão: ' + dayjs().format('DD/MM/YYYY'), colTitleX, y);
-      y += 6;
-      // Cabeçalho da tabela
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.text('Título', colTitleX, y);
-      doc.text('Situação', colSituacaoX, y);
-      doc.text('Valor', colValorX, y);
-      doc.text('Pessoa', colPessoaX, y);
-      // Linha horizontal após cabeçalho
-      doc.setDrawColor(180);
-      doc.setLineWidth(0.25);
-      doc.line(colTitleX, y + 2, colPessoaX + colPessoaW, y + 2);
-      y += 6;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      // Linhas da tabela
-      pagamentos.forEach((p, idx) => {
-        if (y > 280) { doc.addPage(); y = 16; }
-        doc.text(String(p.title || '-'), colTitleX, y, { maxWidth: colTitleW });
-        doc.text(situationReturn(p.situation), colSituacaoX, y, { maxWidth: colSituacaoW });
-        doc.text('R$ ' + Number(p.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }), colValorX, y, { maxWidth: colValorW });
-        doc.text(String(p.personName || '-'), colPessoaX, y, { maxWidth: colPessoaW });
-        // Linha horizontal separadora após cada linha
-        doc.setDrawColor(220);
-        doc.setLineWidth(0.18);
-        doc.line(colTitleX, y + 2, colPessoaX + colPessoaW, y + 2);
-        y += 5;
-      });
-      // Rodapé
-      y = 287;
-      doc.setFontSize(6);
-      doc.text('Relatório gerado por Recanto de Itapuã', colTitleX, y);
-      window.open(doc.output('bloburl'), '_blank');
-    }
-    // Função para gerar PDF em lote idêntico ao recibo individual (4 por folha A4)
-    function gerarPdfRecibosLote(recibos: any[]) {
-      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-      // 3 recibos por página, um embaixo do outro, 1mm de distância
-      const pageHeight = 297;
-      const pageWidth = 210;
-      const reciboWidth = 190;
-      const reciboHeight = 93;
-      const marginX = 10;
-      const marginY = 10;
-      const gapY = 1;
-      const recibosPorPagina = 3;
-        recibos.forEach((recibo, idx) => {
-          const localIdx = idx % recibosPorPagina;
-          if (idx > 0 && localIdx === 0) doc.addPage();
-          const localPosX = marginX;
-          const localPosY = marginY + localIdx * (reciboHeight + gapY);
-          // Borda pontilhada
+          definirModalAberto(false);
+          setEditando(null);
+          carregarPagamentos();
+        } catch (erro: any) {
+          toast.error("Erro ao salvar pagamento! " + (erro?.response?.data?.message || ""));
+        }
+      }
+
+      // Funções placeholder para PDF (não implementadas)
+      function gerarPdfRelatorioDRE() { toast.info("Função de relatório DRE não implementada."); }
+      function gerarPdfRecibosLote() {
+        if (!pagamentos.length) {
+          toast.info("Nenhum pagamento para recibo.");
+          return;
+        }
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        const reciboWidth = 190;
+        const reciboHeight = 90;
+        const espacamento = 8; // Espaço entre recibos
+        const localPosX = 10;
+        const marginY = 10;
+        const recibosPorFolha = 3;
+        pagamentos.forEach((recibo, idx) => {
+          const posY = marginY + (idx % recibosPorFolha) * (reciboHeight + espacamento);
+          // Nova página a cada 3 recibos
+          if (idx > 0 && idx % recibosPorFolha === 0) doc.addPage();
           doc.setLineDashPattern([2, 2], 0);
           doc.setDrawColor(120);
-          doc.roundedRect(localPosX, localPosY, reciboWidth, reciboHeight, 4, 4, 'S');
+          doc.roundedRect(localPosX, posY, reciboWidth, reciboHeight, 4, 4, 'S');
           doc.setLineDashPattern([], 0);
-          // Nome da associação
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(11);
-          doc.text('Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã', localPosX + reciboWidth / 2, localPosY + 8, { align: 'center' });
-          // Padronização igual ao recibo individual
+          doc.text('Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã', localPosX + reciboWidth / 2, posY + 8, { align: 'center' });
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(10);
-          let y = localPosY + 16;
-          const addField = (label: string, value: string) => {
+          let y = posY + 16;
+          const addField = (label, value) => {
             doc.text(label + ':', localPosX + 8, y, { baseline: 'top' });
             const labelWidth = doc.getTextWidth(label + ':');
             const space1mm = 2.83;
@@ -133,167 +165,65 @@ export default function Pagamentos() {
           };
           addField('TÍTULO', recibo.title || '-');
           if (recibo.dueDate) addField('VENCIMENTO', formatarDataBarra(recibo.dueDate));
-          addField('VALOR', recibo.cash !== undefined ? 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-');
+          addField('VALOR', 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
           addField('TIPO PAGAMENTO', modePaymentReturn(recibo.modePayment));
-          addField('DATA PAGAMENTO', formatarDataBarra(recibo.datePayment));
-          addField('DATA FECHAMENTO', formatarDataBarra(recibo.finishPayment ?? recibo.dateClose));
+          addField('DATA ABERTURA', formatarDataBarra(recibo.datePayment));
           addField('SITUAÇÃO', situationReturn(recibo.situation));
+          addField('DATA FECHAMENTO', formatarDataBarra(recibo.finishPayment));
           addField('NOME', recibo.personName || '-');
           addField('ENDEREÇO', recibo.adress || '-');
           if (recibo.obs) addField('OBSERVAÇÕES', String(recibo.obs));
           doc.setFontSize(8);
           doc.setTextColor(80, 80, 200);
-          doc.text('https://recantodeitapua.com.br', localPosX + 8, localPosY + reciboHeight - 7);
+          doc.text('https://recantodeitapua.com.br', localPosX + 8, posY + reciboHeight - 7);
           doc.setTextColor(120);
           doc.setFontSize(7);
-          doc.text('ID: ' + recibo.id, localPosX + reciboWidth - 40, localPosY + reciboHeight - 7);
+          doc.text('ID: ' + recibo.id, localPosX + reciboWidth - 40, posY + reciboHeight - 7);
           doc.setFontSize(10);
           doc.setTextColor(0);
-      });
-      window.open(doc.output('bloburl'), '_blank');
-    }
-
-  // Estado do modal de recibos em lote
-  const [modalRecibosAberto, setModalRecibosAberto] = useState(false);
-  const [dataInicial, setDataInicial] = useState("");
-  const [dataFinal, setDataFinal] = useState("");
-  const [situacaoRecibo, setSituacaoRecibo] = useState("");
-  const [paginaRecibos, setPaginaRecibos] = useState(1);
-  const itensPorPaginaRecibo = 16;
-  // Filtro de situação: '' = todos, '0' = aberto, '1' = fechado
-  const [situacaoFiltro, setSituacaoFiltro] = useState('');
-  // Função para abrir o modal de recibo
-    function abrirRecibo(pagamento: any) {
-      setPagamentoRecibo(pagamento);
-      setReciboAberto(true);
-    }
-  // Mapeamento de códigos para nomes de situação
-  const opcoesSituacao = [
-    { codigo: "PAID", nome: "Pago" },
-    { codigo: "PENDING", nome: "Pendente" },
-    { codigo: "CANCELLED", nome: "Cancelado" },
-  ];
-  const [pagamentos, definirPagamentos] = useState<any[]>([]);
-  const [modalAberto, definirModalAberto] = useState(false);
-  const [carregando, definirCarregando] = useState(false);
-  const [busca, definirBusca] = useState("");
-  const [paginaAtual, definirPaginaAtual] = useState(1);
-  const itensPorPagina = 10;
-  const { token } = useAuth();
-  // Estados do formulário/modal
-  const [editando, setEditando] = useState<any | null>(null);
-  const [titulo, setTitulo] = useState("");
-  const [dataPagamento, setDataPagamento] = useState("");
-  const [situacao, setSituacao] = useState("");
-  const [modoPagamento, setModoPagamento] = useState("");
-  const [valor, setValor] = useState("");
-  const [desconto, setDesconto] = useState("");
-  const [finalizado, setFinalizado] = useState(false);
-  const [obs, setObs] = useState("");
-  const [pessoa, setPessoa] = useState("");
-  const [nomePessoa, setNomePessoa] = useState("");
-  const [endereco, setEndereco] = useState("");
-
-  async function carregarPagamentos() {
-    definirCarregando(true);
-    try {
-      if (!token) {
-        definirPagamentos([]);
-        definirCarregando(false);
-        return;
+        });
+        window.open(doc.output('bloburl'), '_blank');
       }
-      const dados = await listarPagamentos(token);
-      definirPagamentos(dados);
-    } catch {
-      definirPagamentos([]);
-    }
-    definirCarregando(false);
+    // Estados principais
+    const [pagamentos, setPagamentos] = useState<any[]>([]);
+    const [carregando, setCarregando] = useState<boolean>(false);
+    const [busca, setBusca] = useState<string>("");
+    const [situacaoFiltro, setSituacaoFiltro] = useState<string>("");
+    const [paginaAtual, setPaginaAtual] = useState<number>(1);
+    const itensPorPagina = 10;
+    const [modalAberto, definirModalAberto] = useState<boolean>(false);
+    const [editando, setEditando] = useState<any>(null);
+    const [modalRecibosAberto, setModalRecibosAberto] = useState<boolean>(false);
+    const [reciboAberto, setReciboAberto] = useState<boolean>(false);
+    const [pagamentoRecibo, setPagamentoRecibo] = useState<any>(null);
+    // Para formulário do modal
+    const [titulo, setTitulo] = useState("");
+    const [dataPagamento, setDataPagamento] = useState("");
+    const [situacao, setSituacao] = useState("");
+    const [modoPagamento, setModoPagamento] = useState("");
+    const [valor, setValor] = useState("");
+    const [desconto, setDesconto] = useState("");
+    const [finalizado, setFinalizado] = useState(false);
+    const [obs, setObs] = useState("");
+    const [pessoa, setPessoa] = useState("");
+    const [nomePessoa, setNomePessoa] = useState("");
+    const [endereco, setEndereco] = useState("");
+    // Opções de situação para o select
+    const opcoesSituacao = [
+      { codigo: "0", nome: "Aberto" },
+      { codigo: "1", nome: "Fechado" },
+    ];
+
+    // Funções auxiliares para paginação e busca
+    const definirBusca = setBusca;
+    const definirPaginaAtual = setPaginaAtual;
+  // Função para trocar '-' por '/' em datas
+  function formatarDataBarra(data: string | undefined) {
+    if (!data) return '-';
+    return String(data).replace(/-/g, '/');
   }
 
-  useEffect(() => {
-    carregarPagamentos();
-  }, [token]);
-
-  // CRUD Handlers
-  function abrirModalNovo() {
-    setEditando(null);
-    setTitulo("");
-    setDataPagamento("");
-    setSituacao("");
-    setModoPagamento("");
-    setValor("");
-    setDesconto("");
-    setFinalizado(false);
-    setObs("");
-    setPessoa("");
-    setNomePessoa("");
-    setEndereco("");
-    definirModalAberto(true);
-  }
-
-  function abrirModalEditar(pagamento: any) {
-    setEditando(pagamento);
-    setTitulo(pagamento.title || "");
-    setDataPagamento(pagamento.datePayment ? pagamento.datePayment.slice(0, 10) : "");
-    // Corrige para garantir que situation seja string código
-    let situacaoCodigo = pagamento.situation;
-    if (typeof situacaoCodigo === 'number') {
-      if (situacaoCodigo === 1) situacaoCodigo = "PAID";
-      else if (situacaoCodigo === 2) situacaoCodigo = "PENDING";
-      else if (situacaoCodigo === 3) situacaoCodigo = "CANCELLED";
-      else situacaoCodigo = "";
-    }
-    setSituacao(situacaoCodigo || "");
-    setModoPagamento(pagamento.modePayment || "");
-    setValor(pagamento.cash || "");
-    setDesconto(pagamento.discount || "");
-    setFinalizado(!!pagamento.finishPayment);
-    setObs(pagamento.obs || "");
-    setPessoa(pagamento.person || "");
-    setNomePessoa(pagamento.personName || "");
-    setEndereco(pagamento.adress || "");
-    definirModalAberto(true);
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!token) return;
-    // Garante que situation sempre seja string código
-    let situacaoEnvio = situacao;
-    if (typeof situacaoEnvio === 'number') {
-      if (situacaoEnvio === 1) situacaoEnvio = "PAID";
-      else if (situacaoEnvio === 2) situacaoEnvio = "PENDING";
-      else if (situacaoEnvio === 3) situacaoEnvio = "CANCELLED";
-      else situacaoEnvio = "";
-    }
-    const dados: any = {
-      title: titulo,
-      datePayment: dataPagamento,
-      situation: situacaoEnvio,
-      modePayment: modoPagamento,
-      cash: Number(valor),
-      discount: desconto ? Number(desconto) : 0,
-      finishPayment: finalizado,
-      obs,
-      person: pessoa,
-      personName: nomePessoa,
-      adress: endereco,
-    };
-    try {
-      if (editando) {
-        await atualizarPagamento(editando.id, dados, token);
-        toast.success("Pagamento atualizado com sucesso!");
-      } else {
-        await criarPagamento(dados, token);
-        toast.success("Pagamento cadastrado com sucesso!");
-      }
-      definirModalAberto(false);
-      setEditando(null);
-      await carregarPagamentos();
-    } catch (erro: any) {
-      toast.error("Erro ao salvar pagamento! " + (erro?.response?.data?.message || ""));
-    }
-  }
+  // ...restante do código da função Pagamentos...
 
   // Filtragem por busca e situação
   const pagamentosFiltrados = pagamentos.filter((pagamento) => {
@@ -335,7 +265,7 @@ export default function Pagamentos() {
         <h1 className="text-2xl font-bold text-pink-900 mb-6">Pagamentos</h1>
         <section className="rounded-lg bg-white p-4 mb-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <div className="flex flex-row gap-2 w-full order-1 md:order-none">
+            <div className="flex flex-row gap-2 w-full order-1 md:order-0">
               <input
                 type="text"
                 value={busca}
@@ -361,7 +291,7 @@ export default function Pagamentos() {
                 <option value="1">Fechado</option>
               </select>
             </div>
-            <div className="flex flex-row gap-2 w-auto flex-wrap sm:flex-nowrap sm:flex-row sm:gap-2 flex-col sm:flex-row sm:items-center order-2 md:order-none">
+            <div className="flex flex-row gap-2 w-auto flex-wrap sm:flex-nowrap sm:gap-2 sm:items-center order-2 md:order-0">
               <button
                 className="rounded-lg bg-pink-600 px-6 py-2 text-white shadow hover:bg-pink-700 cursor-pointer w-full sm:w-auto mb-2 sm:mb-0"
                 onClick={abrirModalNovo}
@@ -377,7 +307,7 @@ export default function Pagamentos() {
               </button>
               <button
                 className="rounded-lg bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700 cursor-pointer flex items-center gap-2 w-full sm:w-auto"
-                onClick={() => gerarPdfRelatorioDRE(pagamentosFiltrados)}
+                onClick={gerarPdfRelatorioDRE}
                 title="Relatório DRE"
               >
                 <span style={{fontSize: '1.2em'}}>📊</span> DRE
@@ -387,129 +317,36 @@ export default function Pagamentos() {
         </section>
             {/* Modal de recibos em lote */}
             <Modal aberto={modalRecibosAberto} aoFechar={() => setModalRecibosAberto(false)} titulo="Recibos em lote">
-              <div className="flex flex-col gap-6">
-                {/* Cabeçalho de filtros */}
-                {(() => {
-                  // Filtro de recibos para o modal
-                  let recibosFiltrados = pagamentos;
-                  if (dataInicial) {
-                    const [dia, mes, ano] = dataInicial.split("/");
-                    const dataIni = dayjs(`${ano}-${mes}-${dia}`);
-                    recibosFiltrados = recibosFiltrados.filter(r => r.datePayment && dayjs(r.datePayment).isAfter(dataIni.subtract(1, 'day')));
-                  }
-                  if (dataFinal) {
-                    const [dia, mes, ano] = dataFinal.split("/");
-                    const dataFim = dayjs(`${ano}-${mes}-${dia}`);
-                    recibosFiltrados = recibosFiltrados.filter(r => r.datePayment && dayjs(r.datePayment).isBefore(dataFim.add(1, 'day')));
-                  }
-                  if (situacaoRecibo === '0') {
-                    recibosFiltrados = recibosFiltrados.filter(r => String(r.situation) === '0');
-                  } else if (situacaoRecibo === '1') {
-                    recibosFiltrados = recibosFiltrados.filter(r => String(r.situation) === '1');
-                  }
-                  // Paginação
-                  const totalPaginasRecibo = Math.ceil(recibosFiltrados.length / itensPorPaginaRecibo) || 1;
-                  const inicioRecibo = (paginaRecibos - 1) * itensPorPaginaRecibo;
-                  const fimRecibo = inicioRecibo + itensPorPaginaRecibo;
-                  const recibosPaginados = recibosFiltrados.slice(inicioRecibo, fimRecibo);
-                  return (
-                    <>
-                    <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-stretch bg-gray-50 p-4 rounded-lg mb-4 w-full justify-between mt-0 pt-0">
-                        {/* Botão de fechar no topo no mobile, ao lado dos filtros no desktop */}
-                        <div className="flex flex-row w-full justify-end sm:hidden mb-2">
-                          <button onClick={() => setModalRecibosAberto(false)} className="text-gray-500 hover:text-gray-700 text-2xl leading-none px-2 pb-1">×</button>
-                        </div>
-                        <div className="flex flex-col sm:flex-row flex-1 gap-4">
-                          <div className="flex flex-col flex-1 min-w-[120px]">
-                            <label className="text-xs font-semibold mb-1">Data inicial</label>
-                            <input
-                              type="text"
-                              placeholder="dd/MM/aaaa"
-                              value={dataInicial}
-                              onChange={e => setDataInicial(e.target.value)}
-                              className="rounded border px-2 py-1 w-full"
-                              maxLength={10}
-                            />
-                          </div>
-                          <div className="flex flex-col flex-1 min-w-[120px]">
-                            <label className="text-xs font-semibold mb-1">Data final</label>
-                            <input
-                              type="text"
-                              placeholder="dd/MM/aaaa"
-                              value={dataFinal}
-                              onChange={e => setDataFinal(e.target.value)}
-                              className="rounded border px-2 py-1 w-full"
-                              maxLength={10}
-                            />
-                          </div>
-                          <div className="flex flex-col flex-1 min-w-[120px]">
-                            <label className="text-xs font-semibold mb-1">Situação</label>
-                            <select
-                              value={situacaoRecibo}
-                              onChange={e => setSituacaoRecibo(e.target.value)}
-                              className="rounded border px-2 py-1 w-full"
-                            >
-                              <option value="">Todos</option>
-                              <option value="0">Aberto</option>
-                              <option value="1">Fechado</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end mt-0">
-                          {recibosPaginados.length > 0 && (
-                            <button
-                              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow h-10"
-                              onClick={() => gerarPdfRecibosLote(recibosPaginados)}
-                            >
-                              <FaPrint /> Imprimir recibos
-                            </button>
-                          )}
-                          {/* Botão de fechar só aparece aqui em telas médias+ */}
-                          <button onClick={() => setModalRecibosAberto(false)} className="hidden sm:inline text-gray-500 hover:text-gray-700 text-2xl leading-none px-2 pb-1 h-10">×</button>
-                        </div>
-                      </div>
-                      {/* ...botão de imprimir agora só no cabeçalho... */}
-                      {/* Container dos recibos */}
-                      <div className="flex flex-col gap-2 min-h-[200px]">
-                        {recibosPaginados.length === 0 ? (
-                          <div className="text-center text-gray-500">Nenhum recibo encontrado.</div>
-                        ) : recibosPaginados.map((recibo) => {
-                          // ...existing code...
-                          return (
-                            <div key={recibo.id} className="border rounded-lg shadow bg-white p-2 max-w-[600px] w-full mx-auto relative print:border-black print:shadow-none text-[12px] leading-tight h-[320px] flex flex-col justify-between print:rounded print:border print:border-dashed print:border-gray-400 print:p-2">
-                              <div className="flex flex-col gap-2 text-base">
-                                <div><b>TÍTULO:</b> {recibo.title || '-'}</div>
-                                <div><b>VALOR:</b> {recibo.cash !== undefined ? 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</div>
-                                <div><b>TIPO PAGAMENTO:</b> {modePaymentReturn(recibo.modePayment)}</div>
-                                <div><b>DATA PAGAMENTO:</b> {formatarDataBarra(recibo.datePayment)}</div>
-                                <div><b>DATA FECHAMENTO:</b> {formatarDataBarra(recibo.finishPayment)}</div>
-                                <div><b>SITUAÇÃO:</b> {situationReturn(recibo.situation)}</div>
-                                <div><b>NOME:</b> {recibo.personName || '-'}</div>
-                                <div><b>ENDEREÇO:</b> {recibo.adress || '-'}</div>
-                                <div><b>OBSERVAÇÕES:</b> {recibo.obs || '-'}</div>
-                                <div className="text-xs text-gray-400 mt-2">ID: {recibo.id}</div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {/* Paginação */}
-                      <div className="flex justify-center items-center gap-2 mt-4">
-                        <button
-                          className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
-                          onClick={() => setPaginaRecibos(p => Math.max(1, p - 1))}
-                          disabled={paginaRecibos === 1}
-                        >Anterior</button>
-                        <span className="text-sm">Página {paginaRecibos} de {totalPaginasRecibo}</span>
-                        <button
-                          className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
-                          onClick={() => setPaginaRecibos(p => Math.min(totalPaginasRecibo, p + 1))}
-                          disabled={paginaRecibos === totalPaginasRecibo}
-                        >Próxima</button>
-                      </div>
-                    </>
-                  );
-                })()}
+              <div>
+                <div className="flex flex-row gap-2 items-center justify-end mb-4">
+                  <button
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow h-10"
+                    onClick={gerarPdfRecibosLote}
+                  >
+                    <FaPrint /> Imprimir recibos
+                  </button>
+                  <button onClick={() => setModalRecibosAberto(false)} className="text-gray-500 hover:text-gray-700 text-2xl leading-none px-2 pb-1 h-10">×</button>
+                </div>
+                <div className="space-y-6 max-h-[60vh] overflow-y-auto">
+                  {pagamentos.length === 0 && (
+                    <div className="text-center text-gray-500">Nenhum pagamento encontrado.</div>
+                  )}
+                  {pagamentos.map((recibo, idx) => (
+                    <div key={recibo.id || idx} className="border rounded p-4 bg-gray-50">
+                      <div className="font-bold text-pink-800 mb-2">Recibo #{recibo.id}</div>
+                      <div><b>TÍTULO:</b> {recibo.title || '-'}</div>
+                      <div><b>VALOR:</b> {recibo.cash !== undefined ? 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</div>
+                      <div><b>TIPO PAGAMENTO:</b> {modePaymentReturn(recibo.modePayment)}</div>
+                      <div><b>DATA PAGAMENTO:</b> {formatarDataBarra(recibo.datePayment)}</div>
+                      <div><b>DATA FECHAMENTO:</b> {formatarDataBarra(recibo.finishPayment)}</div>
+                      <div><b>SITUAÇÃO:</b> {situationReturn(recibo.situation)}</div>
+                      <div><b>NOME:</b> {recibo.personName || '-'}</div>
+                      <div><b>ENDEREÇO:</b> {recibo.adress || '-'}</div>
+                      <div><b>OBSERVAÇÕES:</b> {recibo.obs || '-'}</div>
+                      <div className="text-xs text-gray-400 mt-2">ID: {recibo.id}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </Modal>
       </header>
@@ -533,43 +370,49 @@ export default function Pagamentos() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pagamentosPaginados.map((pagamento) => (
-                    <tr key={pagamento.id} className="border-b transition-colors duration-200 hover:bg-pink-50 cursor-pointer">
-                      <td className="px-4 py-2 font-bold text-pink-800">{pagamento.title}</td>
-                      <td className="px-4 py-2">{
-                        pagamento.situation === 0 ? 'Aberto' : pagamento.situation === 1 ? 'Fechado' : pagamento.situation
-                      }</td>
-                      <td className="px-4 py-2">R$ {pagamento.cash}</td>
-                      <td className="px-4 py-2">{pagamento.personName}</td>
-                      <td className="px-4 py-2 flex gap-2 items-center">
-                                                <button
-                                                  className="rounded bg-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-300 mr-2"
-                                                  title="Imprimir recibo"
-                                                  onClick={() => abrirRecibo(pagamento)}
-                                                  >
-                                                  <FaRegFileAlt />
-                                                </button>
-                        <button
-                          className="rounded bg-pink-500 px-3 py-1 text-white hover:bg-pink-700 cursor-pointer mr-2"
-                          onClick={() => abrirModalEditar(pagamento)}
-                        >Editar</button>
-                        <button
-                          className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-800 cursor-pointer"
-                          onClick={async () => {
-                            if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
-                              try {
-                                await removerPagamento(pagamento.id, token);
-                                toast.success("Pagamento excluído com sucesso!");
-                                await carregarPagamentos();
-                              } catch (erro: any) {
-                                toast.error("Erro ao excluir pagamento! " + (erro?.response?.data?.message || ""));
+                  {pagamentosPaginados.map((pagamento) => {
+                    return (
+                      <tr key={pagamento.id} className="border-b transition-colors duration-200 hover:bg-pink-50 cursor-pointer">
+                        <td className="px-4 py-2 font-bold text-pink-800">{pagamento.title}</td>
+                        <td className="px-4 py-2">{
+                          pagamento.situation === 0 ? 'Aberto' : pagamento.situation === 1 ? 'Fechado' : pagamento.situation
+                        }</td>
+                        <td className="px-4 py-2">R$ {pagamento.cash}</td>
+                        <td className="px-4 py-2">{pagamento.personName}</td>
+                        <td className="px-4 py-2 flex gap-2 items-center">
+                          <button
+                            className="rounded bg-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-300 mr-2"
+                            title="Imprimir recibo"
+                            onClick={() => abrirRecibo(pagamento)}
+                          >
+                            <FaRegFileAlt />
+                          </button>
+                          <button
+                            className="rounded bg-pink-500 px-3 py-1 text-white hover:bg-pink-700 cursor-pointer mr-2"
+                            onClick={() => abrirModalEditar(pagamento)}
+                          >Editar</button>
+                          <button
+                            className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-800 cursor-pointer"
+                            onClick={async () => {
+                              if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
+                                try {
+                                  if (!token) {
+                                    toast.error("Token de autenticação não encontrado.");
+                                    return;
+                                  }
+                                  await removerPagamento(pagamento.id, token || "");
+                                  toast.success("Pagamento excluído com sucesso!");
+                                  await carregarPagamentos();
+                                } catch (erro: any) {
+                                  toast.error("Erro ao excluir pagamento! " + (erro?.response?.data?.message || ""));
+                                }
                               }
-                            }
-                          }}
-                        >Excluir</button>
-                      </td>
-                    </tr>
-                  ))}
+                            }}
+                          >Excluir</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
