@@ -106,50 +106,49 @@ export default function Pagamentos() {
       const marginY = 10;
       const gapY = 1;
       const recibosPorPagina = 3;
-      recibos.forEach((recibo, idx) => {
-        const localIdx = idx % recibosPorPagina;
-        if (idx > 0 && localIdx === 0) doc.addPage();
-        const localPosX = marginX;
-        const localPosY = marginY + localIdx * (reciboHeight + gapY);
-        // Borda pontilhada
-        doc.setLineDashPattern([2, 2], 0);
-        doc.setDrawColor(120);
-        doc.roundedRect(localPosX, localPosY, reciboWidth, reciboHeight, 4, 4, 'S');
-        doc.setLineDashPattern([], 0);
-        // Nome da associação
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.text('Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã', localPosX + reciboWidth / 2, localPosY + 8, { align: 'center' });
-        doc.setFontSize(13);
-        doc.text('RECIBO', localPosX + reciboWidth / 2, localPosY + 18, { align: 'center' });
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        let y = localPosY + 28;
-        const addField = (label: string, value: string) => {
-          doc.text(label + ':', localPosX + 8, y, { baseline: 'top' });
-          const labelWidth = doc.getTextWidth(label + ':');
-          const space1mm = 2.83;
-          doc.text(String(value), localPosX + 8 + labelWidth + space1mm, y, { baseline: 'top' });
-          y += 7;
-        };
-        addField('TÍTULO', recibo.title || '-');
-        if (recibo.dueDate) addField('VENCIMENTO', formatarDataBarra(recibo.dueDate));
-        addField('VALOR', 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-        addField('TIPO PAGAMENTO', recibo.modePayment || '-');
-        addField('DATA ABERTURA', formatarDataBarra(recibo.datePayment));
-        addField('SITUAÇÃO', recibo.situation || '-');
-        addField('DATA FECHAMENTO', formatarDataBarra(recibo.dateClose));
-        addField('NOME', recibo.personName || '-');
-        addField('ENDEREÇO', recibo.adress || '-');
-        if (recibo.obs) addField('OBSERVAÇÕES', String(recibo.obs));
-        doc.setFontSize(8);
-        doc.setTextColor(80, 80, 200);
-        doc.text('https://recantodeitapua.com.br', localPosX + 8, localPosY + reciboHeight - 7);
-        doc.setTextColor(120);
-        doc.setFontSize(7);
-        doc.text('ID: ' + recibo.id, localPosX + reciboWidth - 40, localPosY + reciboHeight - 7);
-        doc.setFontSize(10);
-        doc.setTextColor(0);
+        recibos.forEach((recibo, idx) => {
+          const localIdx = idx % recibosPorPagina;
+          if (idx > 0 && localIdx === 0) doc.addPage();
+          const localPosX = marginX;
+          const localPosY = marginY + localIdx * (reciboHeight + gapY);
+          // Borda pontilhada
+          doc.setLineDashPattern([2, 2], 0);
+          doc.setDrawColor(120);
+          doc.roundedRect(localPosX, localPosY, reciboWidth, reciboHeight, 4, 4, 'S');
+          doc.setLineDashPattern([], 0);
+          // Nome da associação
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(11);
+          doc.text('Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã', localPosX + reciboWidth / 2, localPosY + 8, { align: 'center' });
+          // Padronização igual ao recibo individual
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(10);
+          let y = localPosY + 16;
+          const addField = (label: string, value: string) => {
+            doc.text(label + ':', localPosX + 8, y, { baseline: 'top' });
+            const labelWidth = doc.getTextWidth(label + ':');
+            const space1mm = 2.83;
+            doc.text(String(value), localPosX + 8 + labelWidth + space1mm, y, { baseline: 'top' });
+            y += 7;
+          };
+          addField('TÍTULO', recibo.title || '-');
+          if (recibo.dueDate) addField('VENCIMENTO', formatarDataBarra(recibo.dueDate));
+          addField('VALOR', recibo.cash !== undefined ? 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-');
+          addField('TIPO PAGAMENTO', modePaymentReturn(recibo.modePayment));
+          addField('DATA PAGAMENTO', formatarDataBarra(recibo.datePayment));
+          addField('DATA FECHAMENTO', formatarDataBarra(recibo.finishPayment ?? recibo.dateClose));
+          addField('SITUAÇÃO', situationReturn(recibo.situation));
+          addField('NOME', recibo.personName || '-');
+          addField('ENDEREÇO', recibo.adress || '-');
+          if (recibo.obs) addField('OBSERVAÇÕES', String(recibo.obs));
+          doc.setFontSize(8);
+          doc.setTextColor(80, 80, 200);
+          doc.text('https://recantodeitapua.com.br', localPosX + 8, localPosY + reciboHeight - 7);
+          doc.setTextColor(120);
+          doc.setFontSize(7);
+          doc.text('ID: ' + recibo.id, localPosX + reciboWidth - 40, localPosY + reciboHeight - 7);
+          doc.setFontSize(10);
+          doc.setTextColor(0);
       });
       window.open(doc.output('bloburl'), '_blank');
     }
@@ -539,20 +538,15 @@ export default function Pagamentos() {
                                 <div><span className="font-semibold">TIPO PAGAMENTO:</span> {recibo.modePayment || '-'}</div>
                                 <div><span className="font-semibold">DATA ABERTURA:</span> {formatarDataBarra(recibo.datePayment)}</div>
                                 <div><span className="font-semibold">SITUAÇÃO:</span> {situacaoLabel}</div>
-                                <div><span className="font-semibold">DATA FECHAMENTO:</span> {formatarDataBarra(recibo.dateClose)}</div>
+                                <div><span className="font-semibold">DATA FECHAMENTO:</span> {(recibo.finishPayment && recibo.dateClose) ? formatarDataBarra(recibo.dateClose) : '-'}</div>
                                 <div><span className="font-semibold">NOME:</span> {recibo.personName}</div>
                                 <div><span className="font-semibold">ENDEREÇO:</span> {recibo.adress || '-'}</div>
                                 {recibo.obs && (
                                   <div className="text-gray-700 mt-[2px]"><span className="font-semibold">OBSERVAÇÕES:</span> {recibo.obs}</div>
                                 )}
                               </div>
-                              <div className="flex justify-between items-end mt-[3px]">
+                              <div className="flex justify-end items-end mt-[3px]">
                                 <span className="text-[10px] text-gray-400">ID: {recibo.id}</span>
-                                <button
-                                  className="ml-2 px-2 py-1 rounded bg-blue-600 text-white text-xs hover:bg-blue-700 print:hidden"
-                                  title="Imprimir este recibo"
-                                  onClick={imprimirReciboUnico}
-                                >Imprimir</button>
                               </div>
                             </div>
                           );
