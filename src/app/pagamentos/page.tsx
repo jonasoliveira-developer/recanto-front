@@ -191,32 +191,42 @@ export default function Pagamentos() {
     <div className="min-h-screen bg-white p-4 font-sans">
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-pink-900 mb-6">Pagamentos</h1>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-          <div className="flex flex-row gap-2 w-full md:w-auto">
-            <input
-              type="text"
-              value={busca}
-              onChange={aoBuscar}
-              placeholder="Buscar por título ou pessoa"
-              className="rounded border px-3 py-2 w-full md:max-w-full md:flex-1"
-            />
-            <select
-              value={situacaoFiltro}
-              onChange={e => setSituacaoFiltro(e.target.value)}
-              className="rounded border px-3 py-2 w-full md:w-auto"
+        <section className="rounded-lg bg-white p-4 mb-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div className="flex flex-row gap-2 w-full">
+              <input
+                type="text"
+                value={busca}
+                onChange={aoBuscar}
+                placeholder="Buscar por título ou pessoa"
+                className="rounded border px-3 py-2 flex-grow min-w-0"
+              />
+              <select
+                value={situacaoFiltro}
+                onChange={e => {
+                  const value = e.target.value;
+                  if (value === "") {
+                    setSituacaoFiltro("");
+                  } else {
+                    setSituacaoFiltro(value);
+                  }
+                  definirPaginaAtual(1);
+                }}
+                className="rounded border px-3 py-2 w-36 shrink-0"
+              >
+                <option value="">Todos</option>
+                <option value="0">Aberto</option>
+                <option value="1">Fechado</option>
+              </select>
+            </div>
+            <button
+              className="rounded-lg bg-pink-600 px-4 py-2 text-white shadow hover:bg-pink-700 cursor-pointer md:ml-2"
+              onClick={abrirModalNovo}
             >
-              <option value="">Todos</option>
-              <option value="0">Aberto</option>
-              <option value="1">Fechado</option>
-            </select>
+              Novo
+            </button>
           </div>
-          <button
-            className="rounded-lg bg-pink-600 px-4 py-2 text-white shadow hover:bg-pink-700 cursor-pointer md:ml-2"
-            onClick={abrirModalNovo}
-          >
-            Novo pagamento
-          </button>
-        </div>
+        </section>
       </header>
       <section className="rounded-lg bg-white p-4">
         {carregando ? (
