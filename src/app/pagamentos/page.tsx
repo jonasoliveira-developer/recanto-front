@@ -309,77 +309,82 @@ export default function Pagamentos() {
         <section className="rounded-lg bg-white p-4 mb-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             {/* Filtros de data inicial/final */}
-            <div className="flex flex-row gap-2 w-full order-1 md:order-0 items-end flex-wrap">
-              <div className="flex flex-col">
-                <label className="text-xs text-gray-600 mb-1">Data Inicial</label>
-                <div className="flex gap-1">
-                  <select value={mesInicial} onChange={e => setMesInicial(e.target.value)} className="rounded border px-2 py-1">
-                    {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                  </select>
-                  <select value={anoInicial} onChange={e => setAnoInicial(e.target.value)} className="rounded border px-2 py-1">
-                    {anos.map(a => <option key={a} value={a}>{a}</option>)}
-                  </select>
+            <div className="flex flex-col gap-2 w-full order-1 md:order-0">
+              <div className="flex flex-row gap-4 flex-wrap items-end justify-between">
+                <div className="flex flex-row gap-4 flex-wrap items-end">
+                  <div className="flex flex-col">
+                    <label className="text-xs text-gray-600 mb-1">Data Inicial</label>
+                    <div className="flex gap-1">
+                      <select value={mesInicial} onChange={e => setMesInicial(e.target.value)} className="rounded border px-2 py-1">
+                        {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                      </select>
+                      <select value={anoInicial} onChange={e => setAnoInicial(e.target.value)} className="rounded border px-2 py-1">
+                        {anos.map(a => <option key={a} value={a}>{a}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <span className="mx-1 mb-3">até</span>
+                  <div className="flex flex-col">
+                    <label className="text-xs text-gray-600 mb-1">Data Final</label>
+                    <div className="flex gap-1">
+                      <select value={mesFinal} onChange={e => setMesFinal(e.target.value)} className="rounded border px-2 py-1">
+                        {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                      </select>
+                      <select value={anoFinal} onChange={e => setAnoFinal(e.target.value)} className="rounded border px-2 py-1">
+                        {anos.map(a => <option key={a} value={a}>{a}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-row gap-2 flex-wrap items-end">
+                  <button
+                    className="rounded-lg bg-pink-600 px-6 py-2 text-white shadow hover:bg-pink-700 cursor-pointer w-full sm:w-auto mb-2 sm:mb-0"
+                    onClick={abrirModalNovo}
+                  >
+                    Novo
+                  </button>
+                  <button
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-white shadow hover:bg-blue-700 cursor-pointer flex items-center gap-2 w-full sm:w-auto mb-2 sm:mb-0"
+                    onClick={() => setModalRecibosAberto(true)}
+                    title="Gerar recibos em lote"
+                  >
+                    <FaRegFileAlt /> Recibos
+                  </button>
+                  <button
+                    className="rounded-lg bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700 cursor-pointer flex items-center gap-2 w-full sm:w-auto"
+                    onClick={gerarPdfRelatorioDRE}
+                    title="Relatório DRE"
+                  >
+                    <span style={{fontSize: '1.2em'}}>📊</span> DRE
+                  </button>
                 </div>
               </div>
-              <span className="mx-1">até</span>
-              <div className="flex flex-col">
-                <label className="text-xs text-gray-600 mb-1">Data Final</label>
-                <div className="flex gap-1">
-                  <select value={mesFinal} onChange={e => setMesFinal(e.target.value)} className="rounded border px-2 py-1">
-                    {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                  </select>
-                  <select value={anoFinal} onChange={e => setAnoFinal(e.target.value)} className="rounded border px-2 py-1">
-                    {anos.map(a => <option key={a} value={a}>{a}</option>)}
-                  </select>
-                </div>
+              <div className="flex flex-row gap-2 flex-wrap items-end mt-2">
+                <input
+                  type="text"
+                  value={busca}
+                  onChange={aoBuscar}
+                  placeholder="Buscar por título ou pessoa"
+                  className="rounded border px-3 py-2 grow min-w-0"
+                />
+                <select
+                  value={situacaoFiltro}
+                  onChange={e => {
+                    const value = e.target.value;
+                    if (value === "") {
+                      setSituacaoFiltro("");
+                    } else {
+                      setSituacaoFiltro(value);
+                    }
+                    definirPaginaAtual(1);
+                  }}
+                  className="rounded border px-3 py-2 w-36 shrink-0"
+                >
+                  <option value="">Todos</option>
+                  <option value="0">Aberto</option>
+                  <option value="1">Fechado</option>
+                </select>
               </div>
-              {/* Busca e situação */}
-              <input
-                type="text"
-                value={busca}
-                onChange={aoBuscar}
-                placeholder="Buscar por título ou pessoa"
-                className="rounded border px-3 py-2 grow min-w-0 ml-4"
-              />
-              <select
-                value={situacaoFiltro}
-                onChange={e => {
-                  const value = e.target.value;
-                  if (value === "") {
-                    setSituacaoFiltro("");
-                  } else {
-                    setSituacaoFiltro(value);
-                  }
-                  definirPaginaAtual(1);
-                }}
-                className="rounded border px-3 py-2 w-36 shrink-0"
-              >
-                <option value="">Todos</option>
-                <option value="0">Aberto</option>
-                <option value="1">Fechado</option>
-              </select>
-            </div>
-            <div className="flex flex-row gap-2 w-auto flex-wrap sm:flex-nowrap sm:gap-2 sm:items-center order-2 md:order-0">
-              <button
-                className="rounded-lg bg-pink-600 px-6 py-2 text-white shadow hover:bg-pink-700 cursor-pointer w-full sm:w-auto mb-2 sm:mb-0"
-                onClick={abrirModalNovo}
-              >
-                Novo
-              </button>
-              <button
-                className="rounded-lg bg-blue-600 px-4 py-2 text-white shadow hover:bg-blue-700 cursor-pointer flex items-center gap-2 w-full sm:w-auto mb-2 sm:mb-0"
-                onClick={() => setModalRecibosAberto(true)}
-                title="Gerar recibos em lote"
-              >
-                <FaRegFileAlt /> Recibos
-              </button>
-              <button
-                className="rounded-lg bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700 cursor-pointer flex items-center gap-2 w-full sm:w-auto"
-                onClick={gerarPdfRelatorioDRE}
-                title="Relatório DRE"
-              >
-                <span style={{fontSize: '1.2em'}}>📊</span> DRE
-              </button>
             </div>
           </div>
         </section>
