@@ -316,8 +316,8 @@ export default function Pagamentos() {
           </div>
         </section>
             {/* Modal de recibos em lote */}
-            <Modal aberto={modalRecibosAberto} aoFechar={() => setModalRecibosAberto(false)} titulo="Recibos em lote">
-              <div>
+            <Modal aberto={modalRecibosAberto} aoFechar={() => setModalRecibosAberto(false)} titulo="Recibos em lote" >
+              <div className="max-h-[90vh] w-full max-w-5xl mx-auto flex flex-col bg-white p-6 overflow-auto">
                 <div className="flex flex-row gap-2 items-center justify-end mb-4">
                   <button
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow h-10"
@@ -325,9 +325,8 @@ export default function Pagamentos() {
                   >
                     <FaPrint /> Imprimir recibos
                   </button>
-                  <button onClick={() => setModalRecibosAberto(false)} className="text-gray-500 hover:text-gray-700 text-2xl leading-none px-2 pb-1 h-10">×</button>
                 </div>
-                <div className="space-y-6 max-h-[60vh] overflow-y-auto">
+                <div className="space-y-6 flex-1">
                   {pagamentos.length === 0 && (
                     <div className="text-center text-gray-500">Nenhum pagamento encontrado.</div>
                   )}
