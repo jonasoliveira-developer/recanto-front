@@ -1,3 +1,4 @@
+  // Filtro de situação: '' = todos, '0' = aberto, '1' = fechado
 
 "use client";
 import { FaRegFileAlt, FaPrint } from "react-icons/fa";
@@ -11,6 +12,8 @@ import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
 export default function Pagamentos() {
+      // Filtro de situação: '' = todos, '0' = aberto, '1' = fechado
+      const [situacaoFiltro, setSituacaoFiltro] = useState('');
     // Função para abrir o modal de recibo
     function abrirRecibo(pagamento: any) {
       setPagamentoRecibo(pagamento);
@@ -150,14 +153,23 @@ export default function Pagamentos() {
     }
   }
 
-  // Filtragem por busca
+  // Filtragem por busca e situação
   const pagamentosFiltrados = pagamentos.filter((pagamento) => {
     const termo = busca.toLowerCase();
-    return (
+    const textoOk =
+      !termo ||
       pagamento.title?.toLowerCase().includes(termo) ||
-      pagamento.situation?.toLowerCase().includes(termo) ||
-      pagamento.personName?.toLowerCase().includes(termo)
-    );
+      pagamento.personName?.toLowerCase().includes(termo);
+
+    // Filtro de situação: '' = todos, '0' = aberto, '1' = fechado
+    let situacaoOk = true;
+    if (situacaoFiltro === '0') {
+      situacaoOk = String(pagamento.situation) === '0';
+    } else if (situacaoFiltro === '1') {
+      situacaoOk = String(pagamento.situation) === '1';
+    }
+
+    return textoOk && situacaoOk;
   });
 
   // Paginação
@@ -180,13 +192,24 @@ export default function Pagamentos() {
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-pink-900 mb-6">Pagamentos</h1>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-          <input
-            type="text"
-            value={busca}
-            onChange={aoBuscar}
-            placeholder="Buscar por título, situação ou pessoa"
-            className="rounded border px-3 py-2 w-full md:max-w-full md:flex-1"
-          />
+          <div className="flex flex-row gap-2 w-full md:w-auto">
+            <input
+              type="text"
+              value={busca}
+              onChange={aoBuscar}
+              placeholder="Buscar por título ou pessoa"
+              className="rounded border px-3 py-2 w-full md:max-w-full md:flex-1"
+            />
+            <select
+              value={situacaoFiltro}
+              onChange={e => setSituacaoFiltro(e.target.value)}
+              className="rounded border px-3 py-2 w-full md:w-auto"
+            >
+              <option value="">Todos</option>
+              <option value="0">Aberto</option>
+              <option value="1">Fechado</option>
+            </select>
+          </div>
           <button
             className="rounded-lg bg-pink-600 px-4 py-2 text-white shadow hover:bg-pink-700 cursor-pointer md:ml-2"
             onClick={abrirModalNovo}
@@ -219,9 +242,7 @@ export default function Pagamentos() {
                     <tr key={pagamento.id} className="border-b transition-colors duration-200 hover:bg-pink-50 cursor-pointer">
                       <td className="px-4 py-2 font-bold text-pink-800">{pagamento.title}</td>
                       <td className="px-4 py-2">{
-                        typeof pagamento.situation === 'number'
-                          ? (pagamento.situation === 1 ? 'Pago' : pagamento.situation === 2 ? 'Pendente' : pagamento.situation === 3 ? 'Cancelado' : pagamento.situation)
-                          : (opcoesSituacao.find(opt => opt.codigo === pagamento.situation)?.nome || pagamento.situation)
+                        pagamento.situation === 0 ? 'Aberto' : pagamento.situation === 1 ? 'Fechado' : pagamento.situation
                       }</td>
                       <td className="px-4 py-2">R$ {pagamento.cash}</td>
                       <td className="px-4 py-2">{pagamento.personName}</td>
@@ -267,9 +288,7 @@ export default function Pagamentos() {
                   <div className="mb-2">
                     <span className="block text-xs text-gray-500 font-semibold">Situação</span>
                     <span className="block text-base text-gray-700">{
-                      typeof pagamento.situation === 'number'
-                        ? (pagamento.situation === 1 ? 'Pago' : pagamento.situation === 2 ? 'Pendente' : pagamento.situation === 3 ? 'Cancelado' : pagamento.situation)
-                        : (opcoesSituacao.find(opt => opt.codigo === pagamento.situation)?.nome || pagamento.situation)
+                      pagamento.situation === 0 ? 'Aberto' : pagamento.situation === 1 ? 'Fechado' : pagamento.situation
                     }</span>
                   </div>
                   <div className="mb-2">
