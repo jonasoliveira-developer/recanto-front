@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useState } from "react";
 import { FaRegFileAlt, FaPrint } from "react-icons/fa";
@@ -11,24 +12,83 @@ import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
 export default function Pagamentos() {
+    // Função para gerar PDF do relatório DRE
+    function gerarPdfRelatorioDRE(pagamentos: any[]) {
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const pageWidth = 210;
+      let y = 16;
+      // Definição das larguras das colunas
+      const colTitleX = 12;      // Título começa mais à esquerda
+      const colTitleW = 70;      // Mais espaço para título
+      const colSituacaoX = colTitleX + colTitleW + 2; // Situação logo após título
+      const colSituacaoW = 18;   // Menos espaço para situação
+      const colValorX = colSituacaoX + colSituacaoW + 2;
+      const colValorW = 22;      // Menos espaço para valor
+      const colPessoaX = colValorX + colValorW + 2;
+      const colPessoaW = 65;     // Mais espaço para nome
+      // Cabeçalho
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã', pageWidth / 2, y, { align: 'center' });
+      y += 7;
+      doc.setFontSize(11); // Título menor
+      doc.text('Relatório DRE - Demonstrativo de Resultados', pageWidth / 2, y, { align: 'center' });
+      y += 7;
+      doc.setFontSize(7); // Data emissão menor
+      doc.setFont('helvetica', 'normal');
+      doc.text('Data de emissão: ' + dayjs().format('DD/MM/YYYY'), colTitleX, y);
+      y += 6;
+      // Cabeçalho da tabela
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.text('Título', colTitleX, y);
+      doc.text('Situação', colSituacaoX, y);
+      doc.text('Valor', colValorX, y);
+      doc.text('Pessoa', colPessoaX, y);
+      // Linha horizontal após cabeçalho
+      doc.setDrawColor(180);
+      doc.setLineWidth(0.25);
+      doc.line(colTitleX, y + 2, colPessoaX + colPessoaW, y + 2);
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      // Linhas da tabela
+      pagamentos.forEach((p, idx) => {
+        if (y > 280) { doc.addPage(); y = 16; }
+        doc.text(String(p.title || '-'), colTitleX, y, { maxWidth: colTitleW });
+        let situacaoLabel = '-';
+        if (p.situation === 1 || p.situation === '1' || p.situation === 'PAID') situacaoLabel = 'Pago';
+        else if (p.situation === 0 || p.situation === '0' || p.situation === 'PENDING') situacaoLabel = 'Aberto';
+        else if (p.situation === 2 || p.situation === '2' || p.situation === 'CANCELLED') situacaoLabel = 'Cancelado';
+        doc.text(situacaoLabel, colSituacaoX, y, { maxWidth: colSituacaoW });
+        doc.text('R$ ' + Number(p.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }), colValorX, y, { maxWidth: colValorW });
+        doc.text(String(p.personName || '-'), colPessoaX, y, { maxWidth: colPessoaW });
+        // Linha horizontal separadora após cada linha
+        doc.setDrawColor(220);
+        doc.setLineWidth(0.18);
+        doc.line(colTitleX, y + 2, colPessoaX + colPessoaW, y + 2);
+        y += 5;
+      });
+      // Rodapé
+      y = 287;
+      doc.setFontSize(6);
+      doc.text('Relatório gerado por Recanto de Itapuã', colTitleX, y);
+      window.open(doc.output('bloburl'), '_blank');
+    }
     // Função para gerar PDF em lote idêntico ao recibo individual (4 por folha A4)
     function gerarPdfRecibosLote(recibos: any[]) {
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-      // 3 recibos por página, centralizados verticalmente
-      const pageHeight = 297;
-      const reciboWidth = 180;
-      const reciboHeight = 90;
+      const reciboWidth = 90;
+      const reciboHeight = 65;
       const marginX = 15;
-      const gapY = 12;
-      const totalRecibosPorPagina = 3;
-      const blocoRecibosAltura = reciboHeight * totalRecibosPorPagina + gapY * (totalRecibosPorPagina - 1);
+      const marginY = 15;
+      const gapX = 10;
+      const gapY = 10;
       recibos.forEach((recibo, idx) => {
-        const localIdx = idx % totalRecibosPorPagina;
+        const localIdx = idx % 4;
         if (idx > 0 && localIdx === 0) doc.addPage();
-        // Centralizar verticalmente o bloco de 3 recibos
-        const offsetY = (pageHeight - blocoRecibosAltura) / 2;
-        const localPosX = marginX;
-        const localPosY = offsetY + localIdx * (reciboHeight + gapY);
+        const localPosX = marginX + (localIdx % 2) * (reciboWidth + gapX);
+        const localPosY = marginY + Math.floor(localIdx / 2) * (reciboHeight + gapY);
         // Borda pontilhada
         doc.setLineDashPattern([2, 2], 0);
         doc.setDrawColor(120);
@@ -37,25 +97,18 @@ export default function Pagamentos() {
         // Título
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(13);
-        doc.text('RECIBO', localPosX + 5, localPosY + 10, { align: 'left' });
+        doc.text('RECIBO', localPosX + reciboWidth / 2, localPosY + 9, { align: 'center' });
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
-        let y = localPosY + 18;
+        let y = localPosY + 16;
         const addField = (label: string, value: string) => {
-          const labelX = localPosX + 5;
           doc.setFont('helvetica', 'bold');
-          // Medir largura do label para posicionar valor logo após os dois pontos
-          const labelWithColon = label.endsWith(':') ? label : label + ':';
-          const labelWidth = doc.getTextWidth(labelWithColon);
-          doc.text(labelWithColon, labelX, y, { align: 'left' });
+          doc.text(label, localPosX + 5, y);
           doc.setFont('helvetica', 'normal');
-          // Espaço de 2mm após os dois pontos
-          const valueX = labelX + labelWidth + 2;
-          doc.text(String(value), valueX, y, { maxWidth: reciboWidth - (valueX - localPosX) - 5, align: 'left' });
-          y += 7;
+          doc.text(String(value), localPosX + 35, y, { maxWidth: reciboWidth - 40 });
+          y += 6;
         };
         addField('TÍTULO:', recibo.title || '-');
-        addField('VENCIMENTO:', recibo.dueDate ? (dayjs(recibo.dueDate).isValid() ? dayjs(recibo.dueDate).format('DD/MM/YYYY') : '-') : '-');
         addField('VALOR:', 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
         addField('TIPO PAGAMENTO:', recibo.modePayment || '-');
         addField('DATA ABERTURA:', recibo.datePayment ? dayjs(recibo.datePayment).format('DD/MM/YYYY') : '-');
@@ -69,27 +122,21 @@ export default function Pagamentos() {
         addField('ENDEREÇO:', recibo.adress || '-');
         if (recibo.obs) {
           doc.setFont('helvetica', 'bold');
-          const obsLabel = 'OBSERVAÇÕES:';
-          const obsLabelX = localPosX + 5;
-          const obsLabelWidth = doc.getTextWidth(obsLabel);
-          doc.text(obsLabel, obsLabelX, y, { align: 'left' });
+          doc.text('OBSERVAÇÕES:', localPosX + 5, y);
           doc.setFont('helvetica', 'normal');
-          // Espaço de 1mm após os dois pontos
-          const obsValueX = obsLabelX + obsLabelWidth + 1;
-          doc.text(String(recibo.obs), obsValueX, y, { maxWidth: reciboWidth - (obsValueX - localPosX) - 5, align: 'left' });
-          y += 7;
+          doc.text(String(recibo.obs), localPosX + 35, y, { maxWidth: reciboWidth - 40 });
+          y += 6;
         }
         doc.setFontSize(8);
         doc.setTextColor(80, 80, 200);
-        doc.text('https://recantodeitapua.com.br', localPosX + 5, localPosY + reciboHeight - 4, { align: 'left' });
+        doc.text('https://recantodeitapua.com.br', localPosX + 5, localPosY + reciboHeight - 4);
         doc.setTextColor(120);
         doc.setFontSize(7);
-        doc.text('ID: ' + recibo.id, localPosX + reciboWidth - 30, localPosY + reciboHeight - 4, { align: 'left' });
+        doc.text('ID: ' + recibo.id, localPosX + reciboWidth - 30, localPosY + reciboHeight - 4);
         doc.setFontSize(10);
         doc.setTextColor(0);
       });
-      // Abrir visualização de impressão em vez de baixar
-      window.open(doc.output('bloburl'), '_blank');
+      doc.save('recibos-lote.pdf');
     }
 
   // Estado do modal de recibos em lote
@@ -276,13 +323,13 @@ export default function Pagamentos() {
         <h1 className="text-2xl font-bold text-pink-900 mb-6">Pagamentos</h1>
         <section className="rounded-lg bg-white p-4 mb-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <div className="flex flex-row gap-2 w-full">
+            <div className="flex flex-row gap-2 w-full order-1 md:order-none">
               <input
                 type="text"
                 value={busca}
                 onChange={aoBuscar}
                 placeholder="Buscar por título ou pessoa"
-                className="rounded border px-3 py-2 flex-grow min-w-0"
+                className="rounded border px-3 py-2 grow min-w-0"
               />
               <select
                 value={situacaoFiltro}
@@ -302,19 +349,26 @@ export default function Pagamentos() {
                 <option value="1">Fechado</option>
               </select>
             </div>
-            <div className="flex flex-row gap-2">
+            <div className="flex flex-row gap-2 w-auto flex-wrap sm:flex-nowrap sm:flex-row sm:gap-2 flex-col sm:flex-row sm:items-center order-2 md:order-none">
               <button
-                className="rounded-lg bg-pink-600 px-4 py-2 text-white shadow hover:bg-pink-700 cursor-pointer"
+                className="rounded-lg bg-pink-600 px-6 py-2 text-white shadow hover:bg-pink-700 cursor-pointer w-full sm:w-auto mb-2 sm:mb-0"
                 onClick={abrirModalNovo}
               >
                 Novo
               </button>
               <button
-                className="rounded-lg bg-blue-600 px-4 py-2 text-white shadow hover:bg-blue-700 cursor-pointer flex items-center gap-2"
+                className="rounded-lg bg-blue-600 px-4 py-2 text-white shadow hover:bg-blue-700 cursor-pointer flex items-center gap-2 w-full sm:w-auto mb-2 sm:mb-0"
                 onClick={() => setModalRecibosAberto(true)}
                 title="Gerar recibos em lote"
               >
                 <FaRegFileAlt /> Recibos
+              </button>
+              <button
+                className="rounded-lg bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700 cursor-pointer flex items-center gap-2 w-full sm:w-auto"
+                onClick={() => gerarPdfRelatorioDRE(pagamentosFiltrados)}
+                title="Relatório DRE"
+              >
+                <span style={{fontSize: '1.2em'}}>📊</span> DRE
               </button>
             </div>
           </div>
