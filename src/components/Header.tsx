@@ -5,7 +5,7 @@ export function Header() {
   const { usuario, logout, estaAutenticado } = useAuth();
 
   return (
-    <header className="w-full bg-[#DDA329] text-[#69553B] shadow px-4 sm:px-8 py-4 border-b-4 border-[#69553B]">
+    <header className="w-full bg-[#DDA329] text-[#69553B] shadow px-4 sm:px-8 py-2 border-b-4 border-[#69553B]">
       <div className="flex flex-col items-center justify-center w-full">
         {/* Nome completo centralizado, responsivo */}
         <span className="font-extrabold text-lg sm:text-2xl tracking-widest text-[#69553B] text-center">
@@ -14,7 +14,7 @@ export function Header() {
         </span>
       </div>
       {/* Navegação centralizada */}
-      <nav className="flex flex-wrap gap-2 sm:gap-4 items-center justify-center mt-3">
+      <nav className="flex flex-wrap gap-2 sm:gap-4 items-center justify-center mt-1">
         <Link href="/residents" className="text-[#69553B] hover:underline hover:text-white transition-colors">Residentes</Link>
         <Link href="/funcionarios" className="text-[#69553B] hover:underline hover:text-white transition-colors">Funcionários</Link>
         <Link href="/ocorrencias" className="text-[#69553B] hover:underline hover:text-white transition-colors">Ocorrências</Link>
@@ -25,7 +25,7 @@ export function Header() {
         <Link href="/portaria" className="text-[#69553B] hover:underline hover:text-white transition-colors">Portaria</Link>
       </nav>
       {/* Login/Logout alinhado à direita em desktop, centralizado em mobile */}
-      <div className="mt-3 flex items-center gap-4 justify-center sm:justify-end w-full">
+      <div className="mt-1 flex items-center gap-4 justify-center sm:justify-end w-full">
         {estaAutenticado && usuario ? (
           <>
             <span className="text-sm text-[#69553B]">{usuario.email}</span>
