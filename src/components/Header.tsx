@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { usePathname } from "next/navigation";
 
 export function Header() {
   const { usuario, logout, estaAutenticado } = useAuth();
   const [menuAberto, setMenuAberto] = useState(false);
+  const pathname = usePathname();
 
   return (
     <header className="w-full bg-[#DDA329] text-[#69553B] shadow px-4 sm:px-8 py-2 border-b-4 border-[#69553B] relative">
       <div className="hidden sm:flex w-full items-center justify-between gap-4 py-2">
         {/* Esquerda: Logo */}
-        <div className="flex items-center justify-start min-w-[110px]">
+        <div className="flex items-center justify-start min-w-27.5">
           <img src="/96X96PX.svg" alt="Logo" className="h-24 w-auto" />
         </div>
         {/* Centro: Nome da associação e links */}
@@ -34,14 +36,16 @@ export function Header() {
           </nav>
         </div>
         {/* Direita: Usuário e botão */}
-        <div className="flex flex-col items-end min-w-[180px]">
+        <div className="flex flex-col items-end min-w-45">
           {estaAutenticado && usuario ? (
             <>
               <span className="text-lg text-[#69553B] font-extrabold mb-1">{usuario.email}</span>
               <button onClick={logout} className="bg-[#69553B] text-[#FFF] px-8 py-1 rounded hover:bg-[#F5E9DD] hover:text-[#4B2E09] transition-colors">Sair</button>
             </>
           ) : (
-            <Link href="/login" className="bg-[#FFF] text-[#69553B] px-3 py-1 rounded border border-[#69553B] hover:bg-[#C3B4A8] hover:text-[#69553B] transition-colors">Entrar</Link>
+            pathname !== "/login" && (
+              <Link href="/login" className="bg-[#FFF] text-[#69553B] px-3 py-1 rounded border border-[#69553B] hover:bg-[#C3B4A8] hover:text-[#69553B] transition-colors">Entrar</Link>
+            )
           )}
         </div>
       </div>

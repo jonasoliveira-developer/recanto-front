@@ -23,11 +23,11 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F5E9DD] to-[#DDA329]">
+    <div className="min-h-[calc(100vh-6rem)] flex items-center justify-center bg-linear-to-br from-[#F5E9DD] to-[#DDA329]">
       <form onSubmit={aoEnviar} className="bg-[#FFF8F0] rounded-lg shadow-lg p-8 w-full max-w-sm flex flex-col gap-4 border border-[#C3B4A8]">
         <div className="flex flex-col items-center justify-center mb-8 gap-4">
+          <img src="/96X96PX.svg" alt="Logo" className="w-40 h-40" />
           <h1 className="text-3xl font-extrabold text-[#4B2E09] text-center">Login</h1>
-          <img src="/96X96PX.svg" alt="Logo" className="w-32 h-32 mt-2" />
         </div>
         <input
           type="email"
