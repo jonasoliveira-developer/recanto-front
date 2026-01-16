@@ -8,15 +8,42 @@ export function Header() {
 
   return (
     <header className="w-full bg-[#DDA329] text-[#69553B] shadow px-4 sm:px-8 py-2 border-b-4 border-[#69553B] relative">
-      <div className="flex flex-col items-center justify-center w-full">
-        {/* Nome completo centralizado, responsivo */}
-        <span className="font-extrabold text-lg sm:text-2xl tracking-widest text-[#69553B] text-center">
-          <span className="block sm:hidden">A.C.M.L.R.I</span>
-          <span className="hidden sm:block">
-            <span className="block">Associação Comunitária</span>
-            <span className="block">Dos Moradores Do Loteamento Recanto De Itapuã</span>
-          </span>
-        </span>
+      <div className="hidden sm:flex w-full items-center justify-between gap-4 py-2">
+        {/* Esquerda: Logo */}
+        <div className="flex items-center justify-start min-w-[110px]">
+          <img src="/96X96PX.svg" alt="Logo" className="h-24 w-auto" />
+        </div>
+        {/* Centro: Nome da associação e links */}
+        <div className="flex flex-col items-center flex-1">
+          <div className="font-extrabold text-xl tracking-widest text-[#69553B] text-center leading-tight">
+            Associação Comunitária
+            <br />
+            Dos Moradores Do Loteamento Recanto De Itapuã
+          </div>
+          <nav className="flex flex-wrap gap-4 items-center justify-center mt-2">
+            {estaAutenticado && usuario && (
+              <>
+                <Link href="/residents" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Residentes</Link>
+                <Link href="/funcionarios" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Funcionários</Link>
+                <Link href="/ocorrencias" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Ocorrências</Link>
+                <Link href="/pagamentos" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Pagamentos</Link>
+                <Link href="/avisos" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Avisos</Link>
+                <Link href="/enderecos" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Endereços</Link>
+              </>
+            )}
+          </nav>
+        </div>
+        {/* Direita: Usuário e botão */}
+        <div className="flex flex-col items-end min-w-[180px]">
+          {estaAutenticado && usuario ? (
+            <>
+              <span className="text-lg text-[#69553B] font-extrabold mb-1">{usuario.email}</span>
+              <button onClick={logout} className="bg-[#69553B] text-[#FFF] px-8 py-1 rounded hover:bg-[#F5E9DD] hover:text-[#4B2E09] transition-colors">Sair</button>
+            </>
+          ) : (
+            <Link href="/login" className="bg-[#FFF] text-[#69553B] px-3 py-1 rounded border border-[#69553B] hover:bg-[#C3B4A8] hover:text-[#69553B] transition-colors">Entrar</Link>
+          )}
+        </div>
       </div>
       {/* Login/Logout removido do header principal, agora apenas no menu lateral hamburger */}
       {/* Hamburger menu para mobile */}
@@ -69,37 +96,7 @@ export function Header() {
         </div>
       )}
       {/* Navegação tradicional para desktop: links à esquerda, usuário à direita */}
-      <div className="hidden sm:flex w-full items-center mt-1 pt-2">
-        <div className="flex flex-col justify-center h-full mr-6">
-          <img src="/96X96PX.svg" alt="Logo" className="h-24 w-auto mx-auto" />
-        </div>
-        <div className="flex flex-1 items-center justify-center">
-          <nav className="flex flex-wrap gap-2 sm:gap-4 items-center justify-center">
-            {estaAutenticado && usuario && (
-              <>
-                <Link href="/residents" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Residentes</Link>
-                <Link href="/funcionarios" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Funcionários</Link>
-                <Link href="/ocorrencias" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Ocorrências</Link>
-                {/* <Link href="/reservas" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Reservas</Link> */}
-                <Link href="/pagamentos" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Pagamentos</Link>
-                <Link href="/avisos" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Avisos</Link>
-                <Link href="/enderecos" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Endereços</Link>
-                {/* <Link href="/portaria" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Portaria</Link> */}
-              </>
-            )}
-          </nav>
-        </div>
-        <div className="flex items-center gap-4 ml-auto">
-          {estaAutenticado && usuario ? (
-            <>
-              <span className="text-lg text-[#69553B] font-extrabold">{usuario.email}</span>
-              <button onClick={logout} className="bg-[#69553B] text-[#FFF] px-8 py-1 rounded hover:bg-[#F5E9DD] hover:text-[#4B2E09] transition-colors">Sair</button>
-            </>
-          ) : (
-            <Link href="/login" className="bg-[#FFF] text-[#69553B] px-3 py-1 rounded border border-[#69553B] hover:bg-[#C3B4A8] hover:text-[#69553B] transition-colors">Entrar</Link>
-          )}
-        </div>
-      </div>
+      {/* Removido bloco antigo de navegação desktop */}
     </header>
   );
 }
