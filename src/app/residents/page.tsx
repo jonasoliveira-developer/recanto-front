@@ -127,65 +127,70 @@ export default function ResidentsPage() {
 					<p className="text-center text-gray-500">Carregando...</p>
 				) : residentesFiltrados.length === 0 ? (
 					<p className="text-center text-gray-500">Nenhum residente encontrado.</p>
-				) : (
-					<table className="min-w-full border-t border-b border-[#C3B4A8]">
-						<thead>
-							<tr>
-								<th className="px-4 py-2 text-left">Nome</th>
-								<th className="px-4 py-2 text-left">E-mail</th>
-								<th className="px-4 py-2 text-left">CPF</th>
-								<th className="px-4 py-2 text-left">Telefone</th>
-								<th className="px-4 py-2 text-left">Ações</th>
-							</tr>
-						</thead>
-						<tbody>
-							{residentesPaginados.map((residente) => (
-								<tr key={residente.id} className="border-b border-[#C3B4A8]">
-									<td className="px-4 py-2">{residente.name}</td>
-									<td className="px-4 py-2">{residente.email}</td>
-									<td className="px-4 py-2">{residente.cpf}</td>
-									<td className="px-4 py-2">{residente.phoneNumber}</td>
-									<td className="px-4 py-2">
-										{(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
-											<button
-												className="rounded bg-[#C3B4A8] px-3 py-1 text-[#69553B] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer mr-2 transition-colors"
-												onClick={() => {
-													setEditando(residente);
-													setNome(residente.name || "");
-													setCpf(residente.cpf || "");
-													setEmail(residente.email || "");
-													setTelefone(residente.phoneNumber || "");
-													setSenha("");
-													const perfisInt = Array.isArray(residente.profiles)
-														? residente.profiles.map((p: any) => typeof p === 'string' ? (p === 'RESIDENT' ? 2 : p === 'ADMIN' ? 0 : p === 'EMPLOYEE' ? 1 : 2) : p)
-														: [2];
-													setPerfis(perfisInt);
-													definirModalAberto(true);
-												}}
-											>Editar</button>
-										)}
-										{hasRole(usuario, UserRole.ADMIN) && (
-											<button
-												className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer transition-colors"
-												onClick={async () => {
-													if (window.confirm("Tem certeza que deseja excluir este residente?")) {
-														try {
-															await removerResidente(residente.id, token || "");
-															toast.success("Residente excluído com sucesso!");
-															await carregarResidentes();
-														} catch (erro: any) {
-															toast.error("Erro ao excluir residente! " + (erro?.response?.data?.message || ""));
-														}
-													}
-												}}
-											>Excluir</button>
-										)}
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				)}
+				   ) : (
+					   <div className="flex flex-col gap-4 md:gap-0">
+						   {/* Cabeçalho da tabela (visível só em telas md+) */}
+						   <div className="hidden md:grid grid-cols-5 bg-[#F5F5F5] font-bold text-[#69553B] px-4 py-2 border-b border-[#C3B4A8] rounded-t-lg">
+							   <div>Nome</div>
+							   <div>E-mail</div>
+							   <div>CPF</div>
+							   <div>Telefone</div>
+							   <div>Ações</div>
+						   </div>
+						   {residentesPaginados.map((residente) => (
+							   <div
+								   key={residente.id}
+								   className="border border-[#C3B4A8] rounded-lg md:rounded-none md:rounded-b-lg md:border-t-0 md:border-l-0 md:border-r-0 p-4 shadow-sm flex flex-col md:grid md:grid-cols-5 md:items-center bg-white w-full"
+							   >
+								   {/* Nome */}
+								   <div className="font-bold text-[#69553B] text-lg md:text-base md:font-normal">{residente.name}</div>
+								   {/* E-mail */}
+								   <div className="text-sm text-gray-700 md:text-base"><span className="font-semibold md:hidden">E-mail:</span> {residente.email}</div>
+								   {/* CPF */}
+								   <div className="text-sm text-gray-700 md:text-base"><span className="font-semibold md:hidden">CPF:</span> {residente.cpf}</div>
+								   {/* Telefone */}
+								   <div className="text-sm text-gray-700 md:text-base"><span className="font-semibold md:hidden">Telefone:</span> {residente.phoneNumber}</div>
+								   {/* Ações */}
+								   <div className="flex gap-2 mt-2 md:mt-0 md:justify-center">
+									   {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
+										   <button
+											   className="rounded bg-[#C3B4A8] px-3 py-1 text-[#69553B] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer transition-colors"
+											   onClick={() => {
+												   setEditando(residente);
+												   setNome(residente.name || "");
+												   setCpf(residente.cpf || "");
+												   setEmail(residente.email || "");
+												   setTelefone(residente.phoneNumber || "");
+												   setSenha("");
+												   const perfisInt = Array.isArray(residente.profiles)
+													   ? residente.profiles.map((p: any) => typeof p === 'string' ? (p === 'RESIDENT' ? 2 : p === 'ADMIN' ? 0 : p === 'EMPLOYEE' ? 1 : 2) : p)
+													   : [2];
+												   setPerfis(perfisInt);
+												   definirModalAberto(true);
+											   }}
+										   >Editar</button>
+									   )}
+									   {hasRole(usuario, UserRole.ADMIN) && (
+										   <button
+											   className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer transition-colors"
+											   onClick={async () => {
+												   if (window.confirm("Tem certeza que deseja excluir este residente?")) {
+													   try {
+														   await removerResidente(residente.id, token || "");
+														   toast.success("Residente excluído com sucesso!");
+														   await carregarResidentes();
+													   } catch (erro: any) {
+														   toast.error("Erro ao excluir residente! " + (erro?.response?.data?.message || ""));
+													   }
+												   }
+											   }}
+										   >Excluir</button>
+									   )}
+								   </div>
+							   </div>
+						   ))}
+					   </div>
+				   )}
 			</section>
 			<Paginacao
 				paginaAtual={paginaAtual}
