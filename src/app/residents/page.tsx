@@ -112,14 +112,12 @@ export default function ResidentsPage() {
 						placeholder="Buscar por nome, e-mail, CPF ou telefone"
 						className="rounded border border-[#C3B4A8] px-3 py-2 w-full md:max-w-full md:flex-1 focus:ring-2 focus:ring-[#DDA329]"
 					/>
-					{hasRole(usuario, UserRole.ADMIN) && (
-						<button
-							className="rounded bg-[#DDA329] px-6 py-2 text-[#69553B] font-bold hover:bg-[#69553B] hover:text-[#FFF] border border-[#69553B] cursor-pointer md:ml-2 transition-colors"
-							onClick={() => definirModalAberto(true)}
-						>
-							Novo residente
-						</button>
-					)}
+					<button
+						className="rounded bg-[#DDA329] px-6 py-2 text-[#69553B] font-bold hover:bg-[#69553B] hover:text-[#FFF] border border-[#69553B] cursor-pointer md:ml-2 transition-colors"
+						onClick={() => definirModalAberto(true)}
+					>
+						Novo residente
+					</button>
 				</div>
 			</header>
 			<section className="bg-white p-4">
@@ -140,7 +138,7 @@ export default function ResidentsPage() {
 						   {residentesPaginados.map((residente) => (
 							   <div
 								   key={residente.id}
-								   className="border border-[#C3B4A8] rounded-lg md:rounded-none md:rounded-b-lg md:border-t-0 md:border-l-0 md:border-r-0 p-4 shadow-sm flex flex-col md:grid md:grid-cols-5 md:items-center bg-white w-full"
+								   className="border border-[#C3B4A8] rounded-lg p-4 shadow-sm flex flex-col gap-2 bg-white w-full md:rounded-none md:rounded-b-lg md:border-t-0 md:border-l-0 md:border-r-0 md:grid md:grid-cols-5 md:items-center md:gap-0"
 							   >
 								   {/* Nome */}
 								   <div className="font-bold text-[#69553B] text-lg md:text-base md:font-normal">{residente.name}</div>
@@ -152,40 +150,36 @@ export default function ResidentsPage() {
 								   <div className="text-sm text-gray-700 md:text-base"><span className="font-semibold md:hidden">Telefone:</span> {residente.phoneNumber}</div>
 								   {/* Ações */}
 								   <div className="flex gap-2 mt-2 md:mt-0 md:justify-center">
-									   {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
-										   <button
-											   className="rounded bg-[#C3B4A8] px-3 py-1 text-[#69553B] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer transition-colors"
-											   onClick={() => {
-												   setEditando(residente);
-												   setNome(residente.name || "");
-												   setCpf(residente.cpf || "");
-												   setEmail(residente.email || "");
-												   setTelefone(residente.phoneNumber || "");
-												   setSenha("");
-												   const perfisInt = Array.isArray(residente.profiles)
-													   ? residente.profiles.map((p: any) => typeof p === 'string' ? (p === 'RESIDENT' ? 2 : p === 'ADMIN' ? 0 : p === 'EMPLOYEE' ? 1 : 2) : p)
-													   : [2];
-												   setPerfis(perfisInt);
-												   definirModalAberto(true);
-											   }}
-										   >Editar</button>
-									   )}
-									   {hasRole(usuario, UserRole.ADMIN) && (
-										   <button
-											   className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer transition-colors"
-											   onClick={async () => {
-												   if (window.confirm("Tem certeza que deseja excluir este residente?")) {
-													   try {
-														   await removerResidente(residente.id, token || "");
-														   toast.success("Residente excluído com sucesso!");
-														   await carregarResidentes();
-													   } catch (erro: any) {
-														   toast.error("Erro ao excluir residente! " + (erro?.response?.data?.message || ""));
-													   }
+									   <button
+										   className="rounded bg-[#C3B4A8] px-3 py-1 text-[#69553B] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer transition-colors"
+										   onClick={() => {
+											   setEditando(residente);
+											   setNome(residente.name || "");
+											   setCpf(residente.cpf || "");
+											   setEmail(residente.email || "");
+											   setTelefone(residente.phoneNumber || "");
+											   setSenha("");
+											   const perfisInt = Array.isArray(residente.profiles)
+												   ? residente.profiles.map((p: any) => typeof p === 'string' ? (p === 'RESIDENT' ? 2 : p === 'ADMIN' ? 0 : p === 'EMPLOYEE' ? 1 : 2) : p)
+												   : [2];
+											   setPerfis(perfisInt);
+											   definirModalAberto(true);
+										   }}
+									   >Editar</button>
+									   <button
+										   className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer transition-colors"
+										   onClick={async () => {
+											   if (window.confirm("Tem certeza que deseja excluir este residente?")) {
+												   try {
+													   await removerResidente(residente.id, token || "");
+													   toast.success("Residente excluído com sucesso!");
+													   await carregarResidentes();
+												   } catch (erro: any) {
+													   toast.error("Erro ao excluir residente! " + (erro?.response?.data?.message || ""));
 												   }
-											   }}
-										   >Excluir</button>
-									   )}
+											   }
+										   }}
+									   >Excluir</button>
 								   </div>
 							   </div>
 						   ))}

@@ -834,33 +834,47 @@ export default function Pagamentos() {
             </div>
           </div>
           <h3 className="text-md font-semibold mb-4 text-pink-800 border-b pb-2">Pagamentos detalhados</h3>
-          <table className="min-w-full text-xs print:text-xs border-t border-b mb-2">
-            <thead className="bg-pink-100">
-              <tr>
-                <th className="px-4 py-3 border text-left">Título</th>
-                <th className="px-4 py-3 border text-center">Situação</th>
-                <th className="px-4 py-3 border text-right">Valor</th>
-                <th className="px-4 py-3 border text-center">Data Pagamento</th>
-                <th className="px-4 py-3 border text-left">Pessoa</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagamentosFiltrados.map((p, idx) => (
-                <>
-                  <tr key={p.id} className="align-middle">
-                    <td className="px-4 py-3 border text-left whitespace-nowrap">{p.title}</td>
-                    <td className="px-4 py-3 border text-center whitespace-nowrap">{situationReturn(p.situation)}</td>
-                    <td className="px-4 py-3 border text-right whitespace-nowrap">R$ {Number(p.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                    <td className="px-4 py-3 border text-center whitespace-nowrap">{formatarDataBarra(p.datePayment)}</td>
-                    <td className="px-4 py-3 border text-left whitespace-nowrap text-[10px] text-gray-700">{p.personName}</td>
-                  </tr>
-                  <tr key={p.id + '-line'}>
-                    <td colSpan={5} className="border-b-2 border-gray-200"></td>
-                  </tr>
-                </>
-              ))}
-            </tbody>
-          </table>
+          {/* Tabela em telas md+, cards em telas pequenas */}
+          <div className="hidden md:block">
+            <table className="min-w-full text-xs print:text-xs border-t border-b mb-2">
+              <thead className="bg-pink-100">
+                <tr>
+                  <th className="px-4 py-3 border text-left">Título</th>
+                  <th className="px-4 py-3 border text-center">Situação</th>
+                  <th className="px-4 py-3 border text-right">Valor</th>
+                  <th className="px-4 py-3 border text-center">Data Pagamento</th>
+                  <th className="px-4 py-3 border text-left">Pessoa</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pagamentosFiltrados.map((p, idx) => (
+                  <>
+                    <tr key={p.id} className="align-middle">
+                      <td className="px-4 py-3 border text-left whitespace-nowrap">{p.title}</td>
+                      <td className="px-4 py-3 border text-center whitespace-nowrap">{situationReturn(p.situation)}</td>
+                      <td className="px-4 py-3 border text-right whitespace-nowrap">R$ {Number(p.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                      <td className="px-4 py-3 border text-center whitespace-nowrap">{formatarDataBarra(p.datePayment)}</td>
+                      <td className="px-4 py-3 border text-left whitespace-nowrap text-[10px] text-gray-700">{p.personName}</td>
+                    </tr>
+                    <tr key={p.id + '-line'}>
+                      <td colSpan={5} className="border-b-2 border-gray-200"></td>
+                    </tr>
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex flex-col gap-4 md:hidden">
+            {pagamentosFiltrados.map((p) => (
+              <div key={p.id} className="border rounded-lg p-4 shadow bg-pink-50">
+                <div className="font-bold text-pink-900 text-base mb-1">{p.title}</div>
+                <div className="text-xs text-gray-700 mb-1"><span className="font-semibold">Situação:</span> {situationReturn(p.situation)}</div>
+                <div className="text-xs text-gray-700 mb-1"><span className="font-semibold">Valor:</span> R$ {Number(p.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                <div className="text-xs text-gray-700 mb-1"><span className="font-semibold">Data Pagamento:</span> {formatarDataBarra(p.datePayment)}</div>
+                <div className="text-xs text-gray-700"><span className="font-semibold">Pessoa:</span> <span className="text-[10px]">{p.personName}</span></div>
+              </div>
+            ))}
+          </div>
           <div className="text-xs text-gray-400 mt-4">Documento gerado automaticamente pelo sistema Recanto de Itapuã.</div>
         </div>
       </Modal>
