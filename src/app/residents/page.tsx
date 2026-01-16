@@ -181,6 +181,11 @@ export default function ResidentsPage() {
 					</table>
 				)}
 			</section>
+			<Paginacao
+				paginaAtual={paginaAtual}
+				totalPaginas={totalPaginas}
+				aoMudar={aoMudarPagina}
+			/>
 			<Modal
 				aberto={modalAberto}
 				aoFechar={() => {definirModalAberto(false); setEditando(null);}}
