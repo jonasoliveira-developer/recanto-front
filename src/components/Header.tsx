@@ -12,7 +12,10 @@ export function Header() {
         {/* Nome completo centralizado, responsivo */}
         <span className="font-extrabold text-lg sm:text-2xl tracking-widest text-[#69553B] text-center">
           <span className="block sm:hidden">A.C.M.L.R.I</span>
-          <span className="hidden sm:block">Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã</span>
+          <span className="hidden sm:block">
+            <span className="block">Associação Comunitária</span>
+            <span className="block">Dos Moradores Do Loteamento Recanto De Itapuã</span>
+          </span>
         </span>
       </div>
       {/* Login/Logout removido do header principal, agora apenas no menu lateral hamburger */}
@@ -67,7 +70,9 @@ export function Header() {
       )}
       {/* Navegação tradicional para desktop: links à esquerda, usuário à direita */}
       <div className="hidden sm:flex w-full items-center mt-1 pt-2">
-        <img src="/96X96PX.svg" alt="Logo" className="h-16 w-auto mr-6" />
+        <div className="flex flex-col justify-center h-full mr-6">
+          <img src="/96X96PX.svg" alt="Logo" className="h-24 w-auto mx-auto" />
+        </div>
         <div className="flex flex-1 items-center justify-center">
           <nav className="flex flex-wrap gap-2 sm:gap-4 items-center justify-center">
             {estaAutenticado && usuario && (

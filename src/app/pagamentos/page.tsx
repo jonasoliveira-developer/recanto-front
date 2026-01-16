@@ -24,7 +24,9 @@ export default function Pagamentos() {
               // Cabeçalho
               doc.setFont('helvetica', 'bold');
               doc.setFontSize(13);
-              doc.text('Associação Comunitária dos Moradores do Loteamento Recanto de Itapuã', pageWidth / 2, y, { align: 'center' });
+              doc.text('Associação Comunitária', pageWidth / 2, y, { align: 'center' });
+              y += 7;
+              doc.text('Dos Moradores Do Loteamento Recanto De Itapuã', pageWidth / 2, y, { align: 'center' });
               y += 8;
               doc.setFont('helvetica', 'normal');
               doc.setFontSize(11);
@@ -105,7 +107,9 @@ export default function Pagamentos() {
                   // Redesenhar cabeçalho do documento
                   doc.setFont('helvetica', 'bold');
                   doc.setFontSize(13);
-                  doc.text('Associação Comunitária dos Moradores do Loteamento Recanto de Itapuã', pageWidth / 2, y, { align: 'center' });
+                  doc.text('Associação Comunitária', pageWidth / 2, y, { align: 'center' });
+                  y += 7;
+                  doc.text('Dos Moradores Do Loteamento Recanto De Itapuã', pageWidth / 2, y, { align: 'center' });
                   y += 8;
                   doc.setFont('helvetica', 'normal');
                   doc.setFontSize(11);
@@ -438,35 +442,34 @@ export default function Pagamentos() {
   return (
     <div className="min-h-screen bg-[#FFF] p-4 font-sans">
       <header className="mb-6">
+        {/* Removido bloco de associação em duas linhas */}
         <h1 className="text-2xl font-extrabold text-[#69553B] mb-6 tracking-wider">Pagamentos</h1>
-        <section className="rounded-lg bg-[#FFF] p-4 mb-4 border border-[#C3B4A8]">
+        <section className="rounded-lg bg-pink-100 p-4 mb-4 border border-[#C3B4A8]">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             {/* Filtros de data inicial/final */}
             <div className="flex flex-col gap-2 w-full order-1 md:order-0">
-              <div className="flex flex-row gap-4 flex-wrap items-end justify-between">
-                <div className="flex flex-row gap-4 flex-wrap items-end">
-                  <div className="flex flex-col">
-                    <label className="text-xs text-gray-600 mb-1">Data Inicial</label>
-                    <div className="flex gap-1">
-                      <select value={mesInicial} onChange={e => setMesInicial(e.target.value)} className="rounded border px-2 py-1">
-                        {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                      </select>
-                      <select value={anoInicial} onChange={e => setAnoInicial(e.target.value)} className="rounded border px-2 py-1">
-                        {anos.map(a => <option key={a} value={a}>{a}</option>)}
-                      </select>
-                    </div>
+              <div className="flex flex-col sm:flex-row gap-4 w-full">
+                <div className="flex flex-col flex-1 w-full">
+                  <label className="text-xs text-gray-600 mb-1">Data Inicial</label>
+                  <div className="flex flex-row gap-2 w-full">
+                    <select value={mesInicial} onChange={e => setMesInicial(e.target.value)} className="rounded border px-4 py-3 text-lg w-1/2 bg-white">
+                      {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </select>
+                    <select value={anoInicial} onChange={e => setAnoInicial(e.target.value)} className="rounded border px-4 py-3 text-lg w-1/2 bg-white">
+                      {anos.map(a => <option key={a} value={a}>{a}</option>)}
+                    </select>
                   </div>
-                  <span className="mx-1 mb-3">até</span>
-                  <div className="flex flex-col">
-                    <label className="text-xs text-gray-600 mb-1">Data Final</label>
-                    <div className="flex gap-1">
-                      <select value={mesFinal} onChange={e => setMesFinal(e.target.value)} className="rounded border px-2 py-1">
-                        {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                      </select>
-                      <select value={anoFinal} onChange={e => setAnoFinal(e.target.value)} className="rounded border px-2 py-1">
-                        {anos.map(a => <option key={a} value={a}>{a}</option>)}
-                      </select>
-                    </div>
+                </div>
+                <span className="mx-1 mb-3 hidden sm:inline self-end">até</span>
+                <div className="flex flex-col flex-1 w-full">
+                  <label className="text-xs text-gray-600 mb-1">Data Final</label>
+                  <div className="flex flex-row gap-2 w-full">
+                    <select value={mesFinal} onChange={e => setMesFinal(e.target.value)} className="rounded border px-4 py-3 text-lg w-1/2 bg-white">
+                      {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </select>
+                    <select value={anoFinal} onChange={e => setAnoFinal(e.target.value)} className="rounded border px-4 py-3 text-lg w-1/2 bg-white">
+                      {anos.map(a => <option key={a} value={a}>{a}</option>)}
+                    </select>
                   </div>
                 </div>
                 <div className="flex flex-row gap-2 flex-wrap items-end">
@@ -500,7 +503,7 @@ export default function Pagamentos() {
                   value={busca}
                   onChange={aoBuscar}
                   placeholder="Buscar por título ou pessoa"
-                  className="rounded border border-[#C3B4A8] px-3 py-2 grow min-w-0 focus:ring-2 focus:ring-[#DDA329]"
+                  className="rounded border border-[#C3B4A8] px-3 py-2 grow min-w-0 focus:ring-2 focus:ring-[#DDA329] bg-white"
                 />
                 <select
                   value={situacaoFiltro}
@@ -513,7 +516,7 @@ export default function Pagamentos() {
                     }
                     definirPaginaAtual(1);
                   }}
-                  className="rounded border border-[#C3B4A8] px-3 py-2 w-36 shrink-0 focus:ring-2 focus:ring-[#DDA329]"
+                  className="rounded border border-[#C3B4A8] px-3 py-2 w-36 shrink-0 focus:ring-2 focus:ring-[#DDA329] bg-white"
                 >
                   <option value="">Todos</option>
                   <option value="0">Aberto</option>
@@ -773,10 +776,10 @@ export default function Pagamentos() {
       </section>
       <Modal aberto={modalAberto} aoFechar={() => {definirModalAberto(false); setEditando(null);}} titulo={editando ? "Editar pagamento" : "Cadastrar pagamento"}>
         <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-          <input className="rounded border px-3 py-2" placeholder="Título" value={titulo} onChange={e => setTitulo(e.target.value)} required />
-          <input className="rounded border px-3 py-2" placeholder="Data do pagamento" type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} required />
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Título" value={titulo} onChange={e => setTitulo(e.target.value)} required />
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Data do pagamento" type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} required />
           <select
-            className="rounded border px-3 py-2"
+            className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
             value={situacao}
             onChange={e => setSituacao(e.target.value)}
             required
@@ -786,17 +789,17 @@ export default function Pagamentos() {
               <option key={opt.codigo} value={opt.codigo}>{opt.nome}</option>
             ))}
           </select>
-          <input className="rounded border px-3 py-2" placeholder="Modo de pagamento" value={modoPagamento} onChange={e => setModoPagamento(e.target.value)} required />
-          <input className="rounded border px-3 py-2" placeholder="Valor" type="number" value={valor} onChange={e => setValor(e.target.value)} required />
-          <input className="rounded border px-3 py-2" placeholder="Desconto" type="number" value={desconto} onChange={e => setDesconto(e.target.value)} />
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={finalizado} onChange={e => setFinalizado(e.target.checked)} /> Finalizado
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Modo de pagamento" value={modoPagamento} onChange={e => setModoPagamento(e.target.value)} required />
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Valor" type="number" value={valor} onChange={e => setValor(e.target.value)} required />
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Desconto" type="number" value={desconto} onChange={e => setDesconto(e.target.value)} />
+          <label className="flex items-center gap-2 text-base sm:text-lg">
+            <input type="checkbox" checked={finalizado} onChange={e => setFinalizado(e.target.checked)} className="bg-white" /> Finalizado
           </label>
-          <input className="rounded border px-3 py-2" placeholder="Observações" value={obs} onChange={e => setObs(e.target.value)} />
-          <input className="rounded border px-3 py-2" placeholder="ID da pessoa" value={pessoa} onChange={e => setPessoa(e.target.value)} />
-          <input className="rounded border px-3 py-2" placeholder="Nome da pessoa" value={nomePessoa} onChange={e => setNomePessoa(e.target.value)} />
-          <input className="rounded border px-3 py-2" placeholder="Endereço" value={endereco} onChange={e => setEndereco(e.target.value)} />
-          <button type="submit" className="rounded bg-pink-600 px-4 py-2 text-white hover:bg-pink-700 cursor-pointer">Salvar</button>
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Observações" value={obs} onChange={e => setObs(e.target.value)} />
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="ID da pessoa" value={pessoa} onChange={e => setPessoa(e.target.value)} />
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Nome da pessoa" value={nomePessoa} onChange={e => setNomePessoa(e.target.value)} />
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Endereço" value={endereco} onChange={e => setEndereco(e.target.value)} />
+          <button type="submit" className="rounded bg-pink-600 px-4 py-2 text-white hover:bg-pink-700 cursor-pointer text-base sm:text-lg">Salvar</button>
         </form>
         <ToastContainer position="top-right" autoClose={2000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
       </Modal>
