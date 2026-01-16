@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { listarOcorrencias, removerOcorrencia, criarOcorrencia, atualizarOcorrencia } from "../../services/ocorrenciasApi";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth, UserRole, hasRole } from "../../context/AuthContext";
 import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
@@ -13,7 +13,7 @@ export default function Ocorrencias() {
   const [busca, definirBusca] = useState("");
   const [paginaAtual, definirPaginaAtual] = useState(1);
   const itensPorPagina = 10;
-  const { token } = useAuth();
+  const { usuario, token } = useAuth();
   // Formulário de criação/edição
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -117,30 +117,33 @@ export default function Ocorrencias() {
                   <h2 className="text-2xl font-bold text-yellow-900 mb-4">{ocorrencia.title}</h2>
                   <p className="text-base text-gray-700 mb-8">{ocorrencia.description}</p>
                   <div className="flex justify-end gap-4 mt-4">
-                    <button
-                      className="rounded bg-yellow-500 px-4 py-2 text-white hover:bg-yellow-700"
-                      onClick={() => {
-                        setEditando(ocorrencia);
-                        setTitulo(ocorrencia.title || "");
-                        setDescricao(ocorrencia.description || "");
-                        setSituacao(ocorrencia.situation || "");
-                        definirModalAberto(true);
-                      }}
-                    >Editar</button>
-                    <button
-                      className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-800"
-                      onClick={async () => {
-                        if (window.confirm("Tem certeza que deseja excluir esta ocorrência?")) {
-                          try {
-                            await removerOcorrencia(ocorrencia.id, token);
-                            // Atualiza lista sem reload
-                            definirOcorrencias((prev: any[]) => prev.filter(o => o.id !== ocorrencia.id));
-                          } catch (erro) {
-                            alert("Erro ao excluir ocorrência!");
-                          }
-                        }
-                      }}
-                    >Excluir</button>
+                    {(hasRole(usuario, UserRole.ADMIN) || (usuario && (usuario.email === ocorrencia.personName || usuario.email === ocorrencia.authorEmail))) && (
+                      <>
+                        <button
+                          className="rounded bg-yellow-500 px-4 py-2 text-white hover:bg-yellow-700"
+                          onClick={() => {
+                            setEditando(ocorrencia);
+                            setTitulo(ocorrencia.title || "");
+                            setDescricao(ocorrencia.description || "");
+                            setSituacao(ocorrencia.situation || "");
+                            definirModalAberto(true);
+                          }}
+                        >Editar</button>
+                        <button
+                          className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-800"
+                          onClick={async () => {
+                            if (window.confirm("Tem certeza que deseja excluir esta ocorrência?")) {
+                              try {
+                                await removerOcorrencia(ocorrencia.id, token || "");
+                                definirOcorrencias((prev: any[]) => prev.filter(o => o.id !== ocorrencia.id));
+                              } catch (erro) {
+                                alert("Erro ao excluir ocorrência!");
+                              }
+                            }
+                          }}
+                        >Excluir</button>
+                      </>
+                    )}
                   </div>
                 </li>
               ))}

@@ -7,11 +7,13 @@ import dayjs from "dayjs";
 import { listarPagamentos, criarPagamento, atualizarPagamento, removerPagamento } from "../../services/pagamentosApi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth, UserRole, hasRole } from "../../context/AuthContext";
 import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
 export default function Pagamentos() {
+  // Contexto de autenticação
+  const { usuario, token } = useAuth ? useAuth() : { usuario: null, token: null };
             // Função para gerar PDF do DRE
             function gerarPdfDRE() {
               const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -156,8 +158,7 @@ export default function Pagamentos() {
         const [mesFinal, setMesFinal] = useState(() => String(nextMonth.getMonth() + 1).padStart(2, '0'));
         const [anoFinal, setAnoFinal] = useState(() => String(nextMonth.getFullYear()));
 
-      // Contexto de autenticação (ajuste conforme seu contexto real)
-      const { token } = useAuth ? useAuth() : { token: null };
+      // ...já declarado no início do componente...
 
       // Carregar pagamentos (mock inicial)
       async function carregarPagamentos() {
@@ -469,12 +470,14 @@ export default function Pagamentos() {
                   </div>
                 </div>
                 <div className="flex flex-row gap-2 flex-wrap items-end">
-                  <button
-                    className="rounded-lg bg-[#DDA329] px-6 py-2 text-[#69553B] font-bold shadow hover:bg-[#C3B4A8] hover:text-[#69553B] border border-[#69553B] cursor-pointer w-full sm:w-auto mb-2 sm:mb-0 transition-colors"
-                    onClick={abrirModalNovo}
-                  >
-                    Novo
-                  </button>
+                  {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
+                    <button
+                      className="rounded-lg bg-[#DDA329] px-6 py-2 text-[#69553B] font-bold shadow hover:bg-[#C3B4A8] hover:text-[#69553B] border border-[#69553B] cursor-pointer w-full sm:w-auto mb-2 sm:mb-0 transition-colors"
+                      onClick={abrirModalNovo}
+                    >
+                      Novo
+                    </button>
+                  )}
                   <button
                     className="rounded-lg bg-[#69553B] px-4 py-2 text-[#FFF] font-bold shadow hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer flex items-center gap-2 w-full sm:w-auto mb-2 sm:mb-0 transition-colors"
                     onClick={() => setModalRecibosAberto(true)}
@@ -564,7 +567,7 @@ export default function Pagamentos() {
             {/* Tabela em tela grande, cards em tela pequena */}
             <div className="hidden md:flex justify-center w-full">
               <div className="w-full mx-auto">
-                <table className="min-w-[700px] w-full border rounded-lg overflow-hidden">
+                <table className="min-w-175 w-full border rounded-lg overflow-hidden">
                   <thead className="bg-pink-100">
                     <tr>
                       <th className="px-4 py-2 text-left">Título</th>
@@ -576,6 +579,10 @@ export default function Pagamentos() {
                   </thead>
                   <tbody>
                     {pagamentosPaginados.map((pagamento) => {
+                      // RESIDENT só pode ver seus próprios pagamentos
+                      if (hasRole(usuario, UserRole.RESIDENT) && usuario?.email !== pagamento.personName) {
+                        return null;
+                      }
                       return (
                         <tr key={pagamento.id} className="border-b transition-colors duration-200 hover:bg-[#FFF7E6] cursor-pointer">
                           <td className="px-4 py-2 font-bold text-[#69553B] text-left">{pagamento.title}</td>
@@ -592,28 +599,32 @@ export default function Pagamentos() {
                             >
                               <FaRegFileAlt />
                             </button>
-                            <button
-                              className="rounded bg-[#DDA329] px-3 py-1 text-[#69553B] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer mr-2 border border-[#69553B] transition-colors"
-                              onClick={() => abrirModalEditar(pagamento)}
-                            >Editar</button>
-                            <button
-                              className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer border border-[#69553B] transition-colors"
-                              onClick={async () => {
-                                if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
-                                  try {
-                                    if (!token) {
-                                      toast.error("Token de autenticação não encontrado.");
-                                      return;
+                            {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
+                              <>
+                                <button
+                                  className="rounded bg-[#DDA329] px-3 py-1 text-[#69553B] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer mr-2 border border-[#69553B] transition-colors"
+                                  onClick={() => abrirModalEditar(pagamento)}
+                                >Editar</button>
+                                <button
+                                  className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer border border-[#69553B] transition-colors"
+                                  onClick={async () => {
+                                    if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
+                                      try {
+                                        if (!token) {
+                                          toast.error("Token de autenticação não encontrado.");
+                                          return;
+                                        }
+                                        await removerPagamento(pagamento.id, token || "");
+                                        toast.success("Pagamento excluído com sucesso!");
+                                        await carregarPagamentos();
+                                      } catch (erro: any) {
+                                        toast.error("Erro ao excluir pagamento! " + (erro?.response?.data?.message || ""));
+                                      }
                                     }
-                                    await removerPagamento(pagamento.id, token || "");
-                                    toast.success("Pagamento excluído com sucesso!");
-                                    await carregarPagamentos();
-                                  } catch (erro: any) {
-                                    toast.error("Erro ao excluir pagamento! " + (erro?.response?.data?.message || ""));
-                                  }
-                                }
-                              }}
-                            >Excluir</button>
+                                  }}
+                                >Excluir</button>
+                              </>
+                            )}
                           </td>
                         </tr>
                       );
@@ -623,37 +634,68 @@ export default function Pagamentos() {
               </div>
             </div>
             <ul className="flex flex-col gap-4 md:hidden">
-              {pagamentosPaginados.map((pagamento) => (
-                <li key={pagamento.id} className="rounded border border-[#C3B4A8] p-4 shadow hover:shadow-lg transition-colors duration-200 hover:bg-[#FFF7E6] cursor-pointer">
-                  <div className="mb-2">
-                    <span className="block text-xs text-gray-500 font-semibold">Título</span>
-                    <span className="block text-base text-[#69553B] font-bold">{pagamento.title}</span>
-                  </div>
-                  <div className="mb-2">
-                    <span className="block text-xs text-gray-500 font-semibold">Situação</span>
-                    <span className="block text-base text-gray-700">{
-                      pagamento.situation === 0 ? 'Aberto' : pagamento.situation === 1 ? 'Fechado' : pagamento.situation
-                    }</span>
-                  </div>
-                  <div className="mb-2">
-                    <span className="block text-xs text-gray-500 font-semibold">Valor</span>
-                    <span className="block text-base text-gray-700">R$ {pagamento.cash}</span>
-                  </div>
-                  <div className="mb-2">
-                    <span className="block text-xs text-gray-500 font-semibold">Pessoa</span>
-                    <span className="block text-base text-gray-700">{pagamento.personName}</span>
-                  </div>
-                  <div className="flex gap-2 mt-2 items-center">
-                    <button
-                      className="rounded bg-[#C3B4A8] px-2 py-1 text-[#69553B] hover:bg-[#DDA329] hover:text-[#69553B] mr-2 border border-[#69553B] transition-colors"
-                      title="Visualizar recibo"
-                      onClick={() => abrirRecibo(pagamento)}
-                    >
-                      <FaRegFileAlt />
-                    </button>
-                  </div>
-                </li>
-              ))}
+              {pagamentosPaginados.map((pagamento) => {
+                if (hasRole(usuario, UserRole.RESIDENT) && usuario?.email !== pagamento.personName) {
+                  return null;
+                }
+                return (
+                  <li key={pagamento.id} className="rounded border border-[#C3B4A8] p-4 shadow hover:shadow-lg transition-colors duration-200 hover:bg-[#FFF7E6] cursor-pointer">
+                    <div className="mb-2">
+                      <span className="block text-xs text-gray-500 font-semibold">Título</span>
+                      <span className="block text-base text-[#69553B] font-bold">{pagamento.title}</span>
+                    </div>
+                    <div className="mb-2">
+                      <span className="block text-xs text-gray-500 font-semibold">Situação</span>
+                      <span className="block text-base text-gray-700">{
+                        pagamento.situation === 0 ? 'Aberto' : pagamento.situation === 1 ? 'Fechado' : pagamento.situation
+                      }</span>
+                    </div>
+                    <div className="mb-2">
+                      <span className="block text-xs text-gray-500 font-semibold">Valor</span>
+                      <span className="block text-base text-gray-700">R$ {pagamento.cash}</span>
+                    </div>
+                    <div className="mb-2">
+                      <span className="block text-xs text-gray-500 font-semibold">Pessoa</span>
+                      <span className="block text-base text-gray-700">{pagamento.personName}</span>
+                    </div>
+                    <div className="flex gap-2 mt-2 items-center">
+                      <button
+                        className="rounded bg-[#C3B4A8] px-2 py-1 text-[#69553B] hover:bg-[#DDA329] hover:text-[#69553B] mr-2 border border-[#69553B] transition-colors"
+                        title="Visualizar recibo"
+                        onClick={() => abrirRecibo(pagamento)}
+                      >
+                        <FaRegFileAlt />
+                      </button>
+                      {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
+                        <>
+                          <button
+                            className="rounded bg-[#DDA329] px-3 py-1 text-[#69553B] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer mr-2 border border-[#69553B] transition-colors"
+                            onClick={() => abrirModalEditar(pagamento)}
+                          >Editar</button>
+                          <button
+                            className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer border border-[#69553B] transition-colors"
+                            onClick={async () => {
+                              if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
+                                try {
+                                  if (!token) {
+                                    toast.error("Token de autenticação não encontrado.");
+                                    return;
+                                  }
+                                  await removerPagamento(pagamento.id, token || "");
+                                  toast.success("Pagamento excluído com sucesso!");
+                                  await carregarPagamentos();
+                                } catch (erro: any) {
+                                  toast.error("Erro ao excluir pagamento! " + (erro?.response?.data?.message || ""));
+                                }
+                              }
+                            }}
+                          >Excluir</button>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
             {/* Modal de Recibo individual - global, fora do .map() */}
             <Modal aberto={reciboAberto} aoFechar={() => setReciboAberto(false)} titulo="Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã - Recibo">

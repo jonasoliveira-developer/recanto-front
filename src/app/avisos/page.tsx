@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { listarAvisos } from "../../services/avisosApi";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth, UserRole, hasRole } from "../../context/AuthContext";
 import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
@@ -13,7 +13,7 @@ export default function Avisos() {
   const [busca, definirBusca] = useState("");
   const [paginaAtual, definirPaginaAtual] = useState(1);
   const itensPorPagina = 10;
-  const { token } = useAuth();
+  const { usuario, token } = useAuth();
 
   useEffect(() => {
     async function carregarAvisos() {
@@ -63,12 +63,14 @@ export default function Avisos() {
     <div className="min-h-screen bg-white p-4 font-sans">
       <header className="mb-6 flex flex-col items-center sm:flex-row sm:justify-between">
         <h1 className="text-2xl font-bold text-orange-900">Avisos</h1>
-        <button
-          className="mt-2 rounded-lg bg-orange-600 px-4 py-2 text-white shadow hover:bg-orange-700 sm:mt-0"
-          onClick={() => definirModalAberto(true)}
-        >
-          Novo aviso
-        </button>
+        {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
+          <button
+            className="mt-2 rounded-lg bg-orange-600 px-4 py-2 text-white shadow hover:bg-orange-700 sm:mt-0"
+            onClick={() => definirModalAberto(true)}
+          >
+            Novo aviso
+          </button>
+        )}
       </header>
       <div className="mb-4 flex justify-end">
         <input
@@ -92,7 +94,9 @@ export default function Avisos() {
                   <h2 className="text-lg font-semibold text-orange-800">{aviso.title}</h2>
                   <p className="text-sm text-gray-600">{aviso.description}</p>
                   <p className="text-sm text-gray-600">Autor: {aviso.personName}</p>
-                  <button className="mt-2 rounded bg-orange-500 px-3 py-1 text-white hover:bg-orange-700">Editar</button>
+                  {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
+                    <button className="mt-2 rounded bg-orange-500 px-3 py-1 text-white hover:bg-orange-700">Editar</button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -104,16 +108,18 @@ export default function Avisos() {
           </>
         )}
       </section>
-      <Modal aberto={modalAberto} aoFechar={() => definirModalAberto(false)} titulo="Cadastrar aviso">
-        {/* Formulário de cadastro aqui */}
-        <form className="flex flex-col gap-3">
-          <input className="rounded border px-3 py-2" placeholder="Título" />
-          <input className="rounded border px-3 py-2" placeholder="Descrição" />
-          <input className="rounded border px-3 py-2" placeholder="Autor" />
-          <input className="rounded border px-3 py-2" placeholder="Data de abertura" type="date" />
-          <button type="submit" className="rounded bg-orange-600 px-4 py-2 text-white hover:bg-orange-700">Salvar</button>
-        </form>
-      </Modal>
+      {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
+        <Modal aberto={modalAberto} aoFechar={() => definirModalAberto(false)} titulo="Cadastrar aviso">
+          {/* Formulário de cadastro aqui */}
+          <form className="flex flex-col gap-3">
+            <input className="rounded border px-3 py-2" placeholder="Título" />
+            <input className="rounded border px-3 py-2" placeholder="Descrição" />
+            <input className="rounded border px-3 py-2" placeholder="Autor" />
+            <input className="rounded border px-3 py-2" placeholder="Data de abertura" type="date" />
+            <button type="submit" className="rounded bg-orange-600 px-4 py-2 text-white hover:bg-orange-700">Salvar</button>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }

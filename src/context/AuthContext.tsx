@@ -1,4 +1,32 @@
 "use client";
+// Enum para roles
+export enum UserRole {
+  ADMIN = 0,
+  EMPLOYEE = 1,
+  RESIDENT = 2
+}
+
+export const ROLE_LABELS = {
+  [UserRole.ADMIN]: "Administrador",
+  [UserRole.EMPLOYEE]: "Funcionário",
+  [UserRole.RESIDENT]: "Residente"
+};
+
+export function getRoleLabel(role: number | string) {
+  if (role === 0 || role === "0") return ROLE_LABELS[UserRole.ADMIN];
+  if (role === 1 || role === "1") return ROLE_LABELS[UserRole.EMPLOYEE];
+  if (role === 2 || role === "2") return ROLE_LABELS[UserRole.RESIDENT];
+  return "Desconhecido";
+}
+
+export function hasRole(usuario: any, role: UserRole) {
+  if (!usuario || !usuario.roles) return false;
+  if (Array.isArray(usuario.roles)) {
+    return usuario.roles.includes(role) || usuario.roles.includes(String(role));
+  }
+  // roles pode ser string separada por vírgula
+  return String(usuario.roles).split(",").includes(String(role));
+}
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 

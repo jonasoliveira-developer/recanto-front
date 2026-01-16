@@ -43,14 +43,18 @@ export function Header() {
             {estaAutenticado && usuario && (
               <span className="text-lg text-[#69553B] font-extrabold mb-2">{usuario.email}</span>
             )}
-            <Link href="/residents" className="text-[#69553B] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Residentes</Link>
-            <Link href="/funcionarios" className="text-[#69553B] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Funcionários</Link>
-            <Link href="/ocorrencias" className="text-[#69553B] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Ocorrências</Link>
-            {/* <Link href="/reservas" className="text-[#69553B] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Reservas</Link> */}
-            <Link href="/pagamentos" className="text-[#69553B] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Pagamentos</Link>
-            <Link href="/avisos" className="text-[#69553B] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Avisos</Link>
-            <Link href="/enderecos" className="text-[#69553B] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Endereços</Link>
-            <Link href="/portaria" className="text-[#69553B] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Portaria</Link>
+            {estaAutenticado && usuario && (
+              <>
+                <Link href="/residents" className="text-[#4B2E09] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Residentes</Link>
+                <Link href="/funcionarios" className="text-[#4B2E09] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Funcionários</Link>
+                <Link href="/ocorrencias" className="text-[#4B2E09] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Ocorrências</Link>
+                {/* <Link href="/reservas" className="text-[#4B2E09] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Reservas</Link> */}
+                <Link href="/pagamentos" className="text-[#4B2E09] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Pagamentos</Link>
+                <Link href="/avisos" className="text-[#4B2E09] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Avisos</Link>
+                <Link href="/enderecos" className="text-[#4B2E09] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Endereços</Link>
+                {/* <Link href="/portaria" className="text-[#4B2E09] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Portaria</Link> */}
+              </>
+            )}
             <div className="mt-4 border-t border-[#C3B4A8] pt-4 flex flex-col items-start gap-2">
               {estaAutenticado && usuario ? (
                 <button onClick={() => { logout(); setMenuAberto(false); }} className="bg-[#69553B] text-[#FFF] px-8 py-1 rounded hover:bg-[#C3B4A8] hover:text-[#69553B] transition-colors">Sair</button>
@@ -61,17 +65,36 @@ export function Header() {
           </div>
         </div>
       )}
-      {/* Navegação tradicional para desktop */}
-      <nav className="hidden sm:flex flex-wrap gap-2 sm:gap-4 items-center justify-center mt-1 pt-2">
-        <Link href="/residents" className="text-[#69553B] hover:underline hover:text-white transition-colors">Residentes</Link>
-        <Link href="/funcionarios" className="text-[#69553B] hover:underline hover:text-white transition-colors">Funcionários</Link>
-        <Link href="/ocorrencias" className="text-[#69553B] hover:underline hover:text-white transition-colors">Ocorrências</Link>
-        {/* <Link href="/reservas" className="text-[#69553B] hover:underline hover:text-white transition-colors">Reservas</Link> */}
-        <Link href="/pagamentos" className="text-[#69553B] hover:underline hover:text-white transition-colors">Pagamentos</Link>
-        <Link href="/avisos" className="text-[#69553B] hover:underline hover:text-white transition-colors">Avisos</Link>
-        <Link href="/enderecos" className="text-[#69553B] hover:underline hover:text-white transition-colors">Endereços</Link>
-        <Link href="/portaria" className="text-[#69553B] hover:underline hover:text-white transition-colors">Portaria</Link>
-      </nav>
+      {/* Navegação tradicional para desktop: links à esquerda, usuário à direita */}
+      <div className="hidden sm:flex w-full items-center mt-1 pt-2">
+        <img src="/96X96PX.svg" alt="Logo" className="h-16 w-auto mr-6" />
+        <div className="flex flex-1 items-center justify-center">
+          <nav className="flex flex-wrap gap-2 sm:gap-4 items-center justify-center">
+            {estaAutenticado && usuario && (
+              <>
+                <Link href="/residents" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Residentes</Link>
+                <Link href="/funcionarios" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Funcionários</Link>
+                <Link href="/ocorrencias" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Ocorrências</Link>
+                {/* <Link href="/reservas" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Reservas</Link> */}
+                <Link href="/pagamentos" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Pagamentos</Link>
+                <Link href="/avisos" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Avisos</Link>
+                <Link href="/enderecos" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Endereços</Link>
+                {/* <Link href="/portaria" className="text-[#4B2E09] hover:underline hover:text-white transition-colors">Portaria</Link> */}
+              </>
+            )}
+          </nav>
+        </div>
+        <div className="flex items-center gap-4 ml-auto">
+          {estaAutenticado && usuario ? (
+            <>
+              <span className="text-lg text-[#69553B] font-extrabold">{usuario.email}</span>
+              <button onClick={logout} className="bg-[#69553B] text-[#FFF] px-8 py-1 rounded hover:bg-[#F5E9DD] hover:text-[#4B2E09] transition-colors">Sair</button>
+            </>
+          ) : (
+            <Link href="/login" className="bg-[#FFF] text-[#69553B] px-3 py-1 rounded border border-[#69553B] hover:bg-[#C3B4A8] hover:text-[#69553B] transition-colors">Entrar</Link>
+          )}
+        </div>
+      </div>
     </header>
   );
 }

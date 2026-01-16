@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { listarResidentes, atualizarResidente, removerResidente } from "../../services/recantoApi";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth, UserRole, hasRole } from "../../context/AuthContext";
 import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 import { ToastContainer, toast } from "react-toastify";
@@ -15,7 +15,7 @@ export default function ResidentsPage() {
 	const [busca, definirBusca] = useState("");
 	const [paginaAtual, definirPaginaAtual] = useState(1);
 	const itensPorPagina = 6;
-	const { token } = useAuth();
+	const { usuario, token } = useAuth();
 
 	// Estados do formulário do modal
 	const [nome, setNome] = useState("");
@@ -112,12 +112,14 @@ export default function ResidentsPage() {
 						placeholder="Buscar por nome, e-mail, CPF ou telefone"
 						className="rounded border border-[#C3B4A8] px-3 py-2 w-full md:max-w-full md:flex-1 focus:ring-2 focus:ring-[#DDA329]"
 					/>
-					<button
-						className="rounded bg-[#DDA329] px-6 py-2 text-[#69553B] font-bold hover:bg-[#69553B] hover:text-[#FFF] border border-[#69553B] cursor-pointer md:ml-2 transition-colors"
-						onClick={() => definirModalAberto(true)}
-					>
-						Novo residente
-					</button>
+					{hasRole(usuario, UserRole.ADMIN) && (
+						<button
+							className="rounded bg-[#DDA329] px-6 py-2 text-[#69553B] font-bold hover:bg-[#69553B] hover:text-[#FFF] border border-[#69553B] cursor-pointer md:ml-2 transition-colors"
+							onClick={() => definirModalAberto(true)}
+						>
+							Novo residente
+						</button>
+					)}
 				</div>
 			</header>
 			<section className="bg-white p-4">
@@ -144,36 +146,40 @@ export default function ResidentsPage() {
 									<td className="px-4 py-2">{residente.cpf}</td>
 									<td className="px-4 py-2">{residente.phoneNumber}</td>
 									<td className="px-4 py-2">
-										<button
-											className="rounded bg-[#C3B4A8] px-3 py-1 text-[#69553B] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer mr-2 transition-colors"
-											onClick={() => {
-												setEditando(residente);
-												setNome(residente.name || "");
-												setCpf(residente.cpf || "");
-												setEmail(residente.email || "");
-												setTelefone(residente.phoneNumber || "");
-												setSenha("");
-												const perfisInt = Array.isArray(residente.profiles)
-													? residente.profiles.map((p: any) => typeof p === 'string' ? (p === 'RESIDENT' ? 2 : p === 'ADMIN' ? 0 : p === 'EMPLOYEE' ? 1 : 2) : p)
-													: [2];
-												setPerfis(perfisInt);
-												definirModalAberto(true);
-											}}
-										>Editar</button>
-										<button
-											className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer transition-colors"
-											onClick={async () => {
-												if (window.confirm("Tem certeza que deseja excluir este residente?")) {
-													try {
-														await removerResidente(residente.id, token);
-														toast.success("Residente excluído com sucesso!");
-														await carregarResidentes();
-													} catch (erro: any) {
-														toast.error("Erro ao excluir residente! " + (erro?.response?.data?.message || ""));
+										{(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
+											<button
+												className="rounded bg-[#C3B4A8] px-3 py-1 text-[#69553B] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer mr-2 transition-colors"
+												onClick={() => {
+													setEditando(residente);
+													setNome(residente.name || "");
+													setCpf(residente.cpf || "");
+													setEmail(residente.email || "");
+													setTelefone(residente.phoneNumber || "");
+													setSenha("");
+													const perfisInt = Array.isArray(residente.profiles)
+														? residente.profiles.map((p: any) => typeof p === 'string' ? (p === 'RESIDENT' ? 2 : p === 'ADMIN' ? 0 : p === 'EMPLOYEE' ? 1 : 2) : p)
+														: [2];
+													setPerfis(perfisInt);
+													definirModalAberto(true);
+												}}
+											>Editar</button>
+										)}
+										{hasRole(usuario, UserRole.ADMIN) && (
+											<button
+												className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer transition-colors"
+												onClick={async () => {
+													if (window.confirm("Tem certeza que deseja excluir este residente?")) {
+														try {
+															await removerResidente(residente.id, token || "");
+															toast.success("Residente excluído com sucesso!");
+															await carregarResidentes();
+														} catch (erro: any) {
+															toast.error("Erro ao excluir residente! " + (erro?.response?.data?.message || ""));
+														}
 													}
-												}
-											}}
-										>Excluir</button>
+												}}
+											>Excluir</button>
+										)}
 									</td>
 								</tr>
 							))}
