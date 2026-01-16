@@ -117,33 +117,31 @@ export default function Ocorrencias() {
                   <h2 className="text-2xl font-bold text-yellow-900 mb-4">{ocorrencia.title}</h2>
                   <p className="text-base text-gray-700 mb-8">{ocorrencia.description}</p>
                   <div className="flex justify-end gap-4 mt-4">
-                    {(hasRole(usuario, UserRole.ADMIN) || (usuario && (usuario.email === ocorrencia.personName || usuario.email === ocorrencia.authorEmail))) && (
-                      <>
-                        <button
-                          className="rounded bg-yellow-500 px-4 py-2 text-white hover:bg-yellow-700"
-                          onClick={() => {
-                            setEditando(ocorrencia);
-                            setTitulo(ocorrencia.title || "");
-                            setDescricao(ocorrencia.description || "");
-                            setSituacao(ocorrencia.situation || "");
-                            definirModalAberto(true);
-                          }}
-                        >Editar</button>
-                        <button
-                          className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-800"
-                          onClick={async () => {
-                            if (window.confirm("Tem certeza que deseja excluir esta ocorrência?")) {
-                              try {
-                                await removerOcorrencia(ocorrencia.id, token || "");
-                                definirOcorrencias((prev: any[]) => prev.filter(o => o.id !== ocorrencia.id));
-                              } catch (erro) {
-                                alert("Erro ao excluir ocorrência!");
-                              }
+                    <>
+                      <button
+                        className="rounded bg-yellow-500 px-4 py-2 text-white hover:bg-yellow-700"
+                        onClick={() => {
+                          setEditando(ocorrencia);
+                          setTitulo(ocorrencia.title || "");
+                          setDescricao(ocorrencia.description || "");
+                          setSituacao(ocorrencia.situation || "");
+                          definirModalAberto(true);
+                        }}
+                      >Editar</button>
+                      <button
+                        className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-800"
+                        onClick={async () => {
+                          if (window.confirm("Tem certeza que deseja excluir esta ocorrência?")) {
+                            try {
+                              await removerOcorrencia(ocorrencia.id, token || "");
+                              definirOcorrencias((prev: any[]) => prev.filter(o => o.id !== ocorrencia.id));
+                            } catch (erro) {
+                              alert("Erro ao excluir ocorrência!");
                             }
-                          }}
-                        >Excluir</button>
-                      </>
-                    )}
+                          }
+                        }}
+                      >Excluir</button>
+                    </>
                   </div>
                 </li>
               ))}

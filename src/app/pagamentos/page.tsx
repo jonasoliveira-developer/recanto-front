@@ -473,14 +473,12 @@ export default function Pagamentos() {
                   </div>
                 </div>
                 <div className="flex flex-row gap-2 flex-wrap items-end">
-                  {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
-                    <button
-                      className="rounded-lg bg-[#DDA329] px-6 py-2 text-[#69553B] font-bold shadow hover:bg-[#C3B4A8] hover:text-[#69553B] border border-[#69553B] cursor-pointer w-full sm:w-auto mb-2 sm:mb-0 transition-colors"
-                      onClick={abrirModalNovo}
-                    >
-                      Novo
-                    </button>
-                  )}
+                  <button
+                    className="rounded-lg bg-[#DDA329] px-6 py-2 text-[#69553B] font-bold shadow hover:bg-[#C3B4A8] hover:text-[#69553B] border border-[#69553B] cursor-pointer w-full sm:w-auto mb-2 sm:mb-0 transition-colors"
+                    onClick={abrirModalNovo}
+                  >
+                    Novo
+                  </button>
                   <button
                     className="rounded-lg bg-[#69553B] px-4 py-2 text-[#FFF] font-bold shadow hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer flex items-center gap-2 w-full sm:w-auto mb-2 sm:mb-0 transition-colors"
                     onClick={() => setModalRecibosAberto(true)}
@@ -582,10 +580,7 @@ export default function Pagamentos() {
                   </thead>
                   <tbody>
                     {pagamentosPaginados.map((pagamento) => {
-                      // RESIDENT só pode ver seus próprios pagamentos
-                      if (hasRole(usuario, UserRole.RESIDENT) && usuario?.email !== pagamento.personName) {
-                        return null;
-                      }
+                      // Todos podem ver todos os pagamentos
                       return (
                         <tr key={pagamento.id} className="border-b transition-colors duration-200 hover:bg-[#FFF7E6] cursor-pointer">
                           <td className="px-4 py-2 font-bold text-[#69553B] text-left">{pagamento.title}</td>
@@ -602,32 +597,30 @@ export default function Pagamentos() {
                             >
                               <FaRegFileAlt />
                             </button>
-                            {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
-                              <>
-                                <button
-                                  className="rounded bg-[#DDA329] px-3 py-1 text-[#69553B] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer mr-2 border border-[#69553B] transition-colors"
-                                  onClick={() => abrirModalEditar(pagamento)}
-                                >Editar</button>
-                                <button
-                                  className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer border border-[#69553B] transition-colors"
-                                  onClick={async () => {
-                                    if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
-                                      try {
-                                        if (!token) {
-                                          toast.error("Token de autenticação não encontrado.");
-                                          return;
-                                        }
-                                        await removerPagamento(pagamento.id, token || "");
-                                        toast.success("Pagamento excluído com sucesso!");
-                                        await carregarPagamentos();
-                                      } catch (erro: any) {
-                                        toast.error("Erro ao excluir pagamento! " + (erro?.response?.data?.message || ""));
+                            <>
+                              <button
+                                className="rounded bg-[#DDA329] px-3 py-1 text-[#69553B] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer mr-2 border border-[#69553B] transition-colors"
+                                onClick={() => abrirModalEditar(pagamento)}
+                              >Editar</button>
+                              <button
+                                className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer border border-[#69553B] transition-colors"
+                                onClick={async () => {
+                                  if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
+                                    try {
+                                      if (!token) {
+                                        toast.error("Token de autenticação não encontrado.");
+                                        return;
                                       }
+                                      await removerPagamento(pagamento.id, token || "");
+                                      toast.success("Pagamento excluído com sucesso!");
+                                      await carregarPagamentos();
+                                    } catch (erro: any) {
+                                      toast.error("Erro ao excluir pagamento! " + (erro?.response?.data?.message || ""));
                                     }
-                                  }}
-                                >Excluir</button>
-                              </>
-                            )}
+                                  }
+                                }}
+                              >Excluir</button>
+                            </>
                           </td>
                         </tr>
                       );
@@ -638,9 +631,7 @@ export default function Pagamentos() {
             </div>
             <ul className="flex flex-col gap-4 md:hidden">
               {pagamentosPaginados.map((pagamento) => {
-                if (hasRole(usuario, UserRole.RESIDENT) && usuario?.email !== pagamento.personName) {
-                  return null;
-                }
+                // Todos podem ver todos os pagamentos
                 return (
                   <li key={pagamento.id} className="rounded border border-[#C3B4A8] p-4 shadow hover:shadow-lg transition-colors duration-200 hover:bg-[#FFF7E6] cursor-pointer">
                     <div className="mb-2">
@@ -669,32 +660,30 @@ export default function Pagamentos() {
                       >
                         <FaRegFileAlt />
                       </button>
-                      {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
-                        <>
-                          <button
-                            className="rounded bg-[#DDA329] px-3 py-1 text-[#69553B] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer mr-2 border border-[#69553B] transition-colors"
-                            onClick={() => abrirModalEditar(pagamento)}
-                          >Editar</button>
-                          <button
-                            className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer border border-[#69553B] transition-colors"
-                            onClick={async () => {
-                              if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
-                                try {
-                                  if (!token) {
-                                    toast.error("Token de autenticação não encontrado.");
-                                    return;
-                                  }
-                                  await removerPagamento(pagamento.id, token || "");
-                                  toast.success("Pagamento excluído com sucesso!");
-                                  await carregarPagamentos();
-                                } catch (erro: any) {
-                                  toast.error("Erro ao excluir pagamento! " + (erro?.response?.data?.message || ""));
+                      <>
+                        <button
+                          className="rounded bg-[#DDA329] px-3 py-1 text-[#69553B] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer mr-2 border border-[#69553B] transition-colors"
+                          onClick={() => abrirModalEditar(pagamento)}
+                        >Editar</button>
+                        <button
+                          className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer border border-[#69553B] transition-colors"
+                          onClick={async () => {
+                            if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
+                              try {
+                                if (!token) {
+                                  toast.error("Token de autenticação não encontrado.");
+                                  return;
                                 }
+                                await removerPagamento(pagamento.id, token || "");
+                                toast.success("Pagamento excluído com sucesso!");
+                                await carregarPagamentos();
+                              } catch (erro: any) {
+                                toast.error("Erro ao excluir pagamento! " + (erro?.response?.data?.message || ""));
                               }
-                            }}
-                          >Excluir</button>
-                        </>
-                      )}
+                            }
+                          }}
+                        >Excluir</button>
+                      </>
                     </div>
                   </li>
                 );

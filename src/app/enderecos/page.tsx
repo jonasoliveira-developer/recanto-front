@@ -61,14 +61,12 @@ export default function Enderecos() {
     <div className="min-h-screen bg-white p-4 font-sans">
       <header className="mb-6 flex flex-col items-center sm:flex-row sm:justify-between">
         <h1 className="text-2xl font-bold text-teal-900">Endereços</h1>
-        {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
-          <button
-            className="mt-2 rounded-lg bg-teal-600 px-4 py-2 text-white shadow hover:bg-teal-700 sm:mt-0"
-            onClick={() => definirModalAberto(true)}
-          >
-            Novo endereço
-          </button>
-        )}
+        <button
+          className="mt-2 rounded-lg bg-teal-600 px-4 py-2 text-white shadow hover:bg-teal-700 sm:mt-0"
+          onClick={() => definirModalAberto(true)}
+        >
+          Novo endereço
+        </button>
       </header>
       <div className="mb-4 flex justify-end">
         <input
@@ -91,9 +89,7 @@ export default function Enderecos() {
                 <li key={endereco.id} className="rounded border p-4 shadow hover:shadow-lg">
                   <h2 className="text-lg font-semibold text-teal-800">{endereco.adress}</h2>
                   <p className="text-sm text-gray-600">Pessoa: {endereco.personName}</p>
-                  {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
-                    <button className="mt-2 rounded bg-teal-500 px-3 py-1 text-white hover:bg-teal-700">Editar</button>
-                  )}
+                  <button className="mt-2 rounded bg-teal-500 px-3 py-1 text-white hover:bg-teal-700">Editar</button>
                 </li>
               ))}
             </ul>
@@ -105,16 +101,14 @@ export default function Enderecos() {
           </>
         )}
       </section>
-      {(hasRole(usuario, UserRole.ADMIN) || hasRole(usuario, UserRole.EMPLOYEE)) && (
-        <Modal aberto={modalAberto} aoFechar={() => definirModalAberto(false)} titulo="Cadastrar endereço">
-          {/* Formulário de cadastro aqui */}
-          <form className="flex flex-col gap-3">
-            <input className="rounded border px-3 py-2" placeholder="Endereço" />
-            <input className="rounded border px-3 py-2" placeholder="Nome da pessoa" />
-            <button type="submit" className="rounded bg-teal-600 px-4 py-2 text-white hover:bg-teal-700">Salvar</button>
-          </form>
-        </Modal>
-      )}
+      <Modal aberto={modalAberto} aoFechar={() => definirModalAberto(false)} titulo="Cadastrar endereço">
+        {/* Formulário de cadastro aqui */}
+        <form className="flex flex-col gap-3">
+          <input className="rounded border px-3 py-2" placeholder="Endereço" />
+          <input className="rounded border px-3 py-2" placeholder="Nome da pessoa" />
+          <button type="submit" className="rounded bg-teal-600 px-4 py-2 text-white hover:bg-teal-700">Salvar</button>
+        </form>
+      </Modal>
     </div>
   );
 }
