@@ -66,26 +66,26 @@ export default function Funcionarios() {
   }
 
   return (
-    <div className="min-h-screen bg-white p-4 font-sans">
+    <div className="min-h-screen bg-[#FFF] p-4 font-sans">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-green-900 mb-6">Funcionários</h1>
+        <h1 className="text-2xl font-extrabold text-[#69553B] mb-6 tracking-wider">Funcionários</h1>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <input
             type="text"
             value={busca}
             onChange={aoBuscar}
             placeholder="Buscar por nome, e-mail ou CPF"
-            className="rounded border px-3 py-2 w-full md:max-w-full md:flex-1"
+            className="rounded border border-[#C3B4A8] px-3 py-2 w-full md:max-w-full md:flex-1 focus:ring-2 focus:ring-[#DDA329]"
           />
           <button
-            className="rounded-lg bg-green-600 px-4 py-2 text-white shadow hover:bg-green-700 cursor-pointer md:ml-2"
+            className="rounded-lg bg-green-600 px-4 py-2 text-white shadow hover:bg-green-700 cursor-pointer md:ml-2 font-bold border border-green-700"
             onClick={() => definirModalAberto(true)}
           >
             Novo funcionário
           </button>
         </div>
       </header>
-      <section className="rounded-lg bg-white p-4">
+      <section className="rounded-lg bg-[#FFF] p-4 border border-[#C3B4A8]">
         {carregando ? (
           <p className="text-center text-green-700">Carregando...</p>
         ) : funcionariosFiltrados.length === 0 ? (
@@ -95,23 +95,23 @@ export default function Funcionarios() {
             {/* Tabela em tela grande, cards em tela pequena */}
             <div className="hidden md:block">
               <table className="min-w-full border rounded-lg overflow-hidden">
-                <thead className="bg-gray-100">
+                <thead className="bg-[#FFF7E6]">
                   <tr>
-                    <th className="px-4 py-2 text-left">Nome</th>
-                    <th className="px-4 py-2 text-left">E-mail</th>
-                    <th className="px-4 py-2 text-left">CPF</th>
-                    <th className="px-4 py-2 text-left">Ações</th>
+                    <th className="px-4 py-2 text-left text-[#69553B]">Nome</th>
+                    <th className="px-4 py-2 text-left text-[#69553B]">E-mail</th>
+                    <th className="px-4 py-2 text-left text-[#69553B]">CPF</th>
+                    <th className="px-4 py-2 text-left text-[#69553B]">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {funcionariosPaginados.map((funcionario) => (
-                    <tr key={funcionario.id} className="border-b transition-colors duration-200 hover:bg-green-50 cursor-pointer">
-                      <td className="px-4 py-2 font-bold text-green-800">{funcionario.name}</td>
+                    <tr key={funcionario.id} className="border-b transition-colors duration-200 hover:bg-[#FFF7E6] cursor-pointer">
+                      <td className="px-4 py-2 font-bold text-[#69553B]">{funcionario.name}</td>
                       <td className="px-4 py-2">{funcionario.email}</td>
                       <td className="px-4 py-2">{funcionario.cpf}</td>
                       <td className="px-4 py-2">
                         <button
-                          className="rounded bg-green-500 px-3 py-1 text-white hover:bg-green-700 cursor-pointer mr-2"
+                          className="rounded bg-green-500 px-3 py-1 text-white hover:bg-green-700 cursor-pointer mr-2 font-bold border border-green-700"
                           onClick={() => {
                             setEditando(funcionario);
                             setNome(funcionario.name || "");
@@ -122,7 +122,7 @@ export default function Funcionarios() {
                           }}
                         >Editar</button>
                         <button
-                          className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-800 cursor-pointer"
+                          className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-800 cursor-pointer font-bold border border-red-800"
                           onClick={async () => {
                             if (window.confirm("Tem certeza que deseja excluir este funcionário?")) {
                               try {

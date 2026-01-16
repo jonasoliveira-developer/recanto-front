@@ -435,10 +435,10 @@ export default function Pagamentos() {
   }
 
   return (
-    <div className="min-h-screen bg-white p-4 font-sans">
+    <div className="min-h-screen bg-[#FFF] p-4 font-sans">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-pink-900 mb-6">Pagamentos</h1>
-        <section className="rounded-lg bg-white p-4 mb-4">
+        <h1 className="text-2xl font-extrabold text-[#69553B] mb-6 tracking-wider">Pagamentos</h1>
+        <section className="rounded-lg bg-[#FFF] p-4 mb-4 border border-[#C3B4A8]">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             {/* Filtros de data inicial/final */}
             <div className="flex flex-col gap-2 w-full order-1 md:order-0">
@@ -470,20 +470,20 @@ export default function Pagamentos() {
                 </div>
                 <div className="flex flex-row gap-2 flex-wrap items-end">
                   <button
-                    className="rounded-lg bg-pink-600 px-6 py-2 text-white shadow hover:bg-pink-700 cursor-pointer w-full sm:w-auto mb-2 sm:mb-0"
+                    className="rounded-lg bg-[#DDA329] px-6 py-2 text-[#69553B] font-bold shadow hover:bg-[#C3B4A8] hover:text-[#69553B] border border-[#69553B] cursor-pointer w-full sm:w-auto mb-2 sm:mb-0 transition-colors"
                     onClick={abrirModalNovo}
                   >
                     Novo
                   </button>
                   <button
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-white shadow hover:bg-blue-700 cursor-pointer flex items-center gap-2 w-full sm:w-auto mb-2 sm:mb-0"
+                    className="rounded-lg bg-[#69553B] px-4 py-2 text-[#FFF] font-bold shadow hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer flex items-center gap-2 w-full sm:w-auto mb-2 sm:mb-0 transition-colors"
                     onClick={() => setModalRecibosAberto(true)}
                     title="Gerar recibos em lote"
                   >
                     <FaRegFileAlt /> Recibos
                   </button>
                   <button
-                    className="rounded-lg bg-green-600 px-6 py-2 text-white shadow hover:bg-green-700 cursor-pointer flex items-center gap-2 w-full sm:w-auto"
+                    className="rounded-lg bg-[#C3B4A8] px-6 py-2 text-[#69553B] font-bold shadow hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer flex items-center gap-2 w-full sm:w-auto transition-colors"
                     onClick={gerarPdfRelatorioDRE}
                     title="Relatório DRE"
                   >
@@ -497,7 +497,7 @@ export default function Pagamentos() {
                   value={busca}
                   onChange={aoBuscar}
                   placeholder="Buscar por título ou pessoa"
-                  className="rounded border px-3 py-2 grow min-w-0"
+                  className="rounded border border-[#C3B4A8] px-3 py-2 grow min-w-0 focus:ring-2 focus:ring-[#DDA329]"
                 />
                 <select
                   value={situacaoFiltro}
@@ -510,7 +510,7 @@ export default function Pagamentos() {
                     }
                     definirPaginaAtual(1);
                   }}
-                  className="rounded border px-3 py-2 w-36 shrink-0"
+                  className="rounded border border-[#C3B4A8] px-3 py-2 w-36 shrink-0 focus:ring-2 focus:ring-[#DDA329]"
                 >
                   <option value="">Todos</option>
                   <option value="0">Aberto</option>
@@ -522,10 +522,10 @@ export default function Pagamentos() {
         </section>
             {/* Modal de recibos em lote */}
             <Modal aberto={modalRecibosAberto} aoFechar={() => setModalRecibosAberto(false)} titulo="Recibos em lote" >
-              <div className="max-h-[90vh] w-full max-w-5xl mx-auto flex flex-col bg-white p-6 overflow-auto">
+              <div className="max-h-[90vh] w-full max-w-5xl mx-auto flex flex-col bg-[#FFF] p-6 overflow-auto border border-[#C3B4A8]">
                 <div className="flex flex-row gap-2 items-center justify-end mb-4">
                   <button
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow h-10"
+                    className="flex items-center gap-2 bg-[#69553B] hover:bg-[#DDA329] text-[#FFF] hover:text-[#69553B] px-4 py-2 rounded shadow h-10 border border-[#69553B] font-bold transition-colors"
                     onClick={gerarPdfRecibosLote}
                   >
                     <FaPrint /> Imprimir recibos
@@ -577,8 +577,8 @@ export default function Pagamentos() {
                   <tbody>
                     {pagamentosPaginados.map((pagamento) => {
                       return (
-                        <tr key={pagamento.id} className="border-b transition-colors duration-200 hover:bg-pink-50 cursor-pointer">
-                          <td className="px-4 py-2 font-bold text-pink-800 text-left">{pagamento.title}</td>
+                        <tr key={pagamento.id} className="border-b transition-colors duration-200 hover:bg-[#FFF7E6] cursor-pointer">
+                          <td className="px-4 py-2 font-bold text-[#69553B] text-left">{pagamento.title}</td>
                           <td className="px-4 py-2 text-center">{
                             pagamento.situation === 0 ? 'Aberto' : pagamento.situation === 1 ? 'Fechado' : pagamento.situation
                           }</td>
@@ -586,18 +586,18 @@ export default function Pagamentos() {
                           <td className="px-4 py-2 text-left">{pagamento.personName}</td>
                           <td className="px-4 py-2 flex gap-2 items-center justify-center">
                             <button
-                              className="rounded bg-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-300 mr-2"
+                              className="rounded bg-[#C3B4A8] px-2 py-1 text-[#69553B] hover:bg-[#DDA329] hover:text-[#69553B] mr-2 border border-[#69553B] transition-colors"
                               title="Imprimir recibo"
                               onClick={() => abrirRecibo(pagamento)}
                             >
                               <FaRegFileAlt />
                             </button>
                             <button
-                              className="rounded bg-pink-500 px-3 py-1 text-white hover:bg-pink-700 cursor-pointer mr-2"
+                              className="rounded bg-[#DDA329] px-3 py-1 text-[#69553B] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer mr-2 border border-[#69553B] transition-colors"
                               onClick={() => abrirModalEditar(pagamento)}
                             >Editar</button>
                             <button
-                              className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-800 cursor-pointer"
+                              className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] cursor-pointer border border-[#69553B] transition-colors"
                               onClick={async () => {
                                 if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
                                   try {
@@ -624,10 +624,10 @@ export default function Pagamentos() {
             </div>
             <ul className="flex flex-col gap-4 md:hidden">
               {pagamentosPaginados.map((pagamento) => (
-                <li key={pagamento.id} className="rounded border p-4 shadow hover:shadow-lg transition-colors duration-200 hover:bg-pink-50 cursor-pointer">
+                <li key={pagamento.id} className="rounded border border-[#C3B4A8] p-4 shadow hover:shadow-lg transition-colors duration-200 hover:bg-[#FFF7E6] cursor-pointer">
                   <div className="mb-2">
                     <span className="block text-xs text-gray-500 font-semibold">Título</span>
-                    <span className="block text-base text-pink-800 font-bold">{pagamento.title}</span>
+                    <span className="block text-base text-[#69553B] font-bold">{pagamento.title}</span>
                   </div>
                   <div className="mb-2">
                     <span className="block text-xs text-gray-500 font-semibold">Situação</span>
@@ -645,7 +645,7 @@ export default function Pagamentos() {
                   </div>
                   <div className="flex gap-2 mt-2 items-center">
                     <button
-                      className="rounded bg-gray-200 px-2 py-1 text-gray-700 hover:bg-gray-300 mr-2"
+                      className="rounded bg-[#C3B4A8] px-2 py-1 text-[#69553B] hover:bg-[#DDA329] hover:text-[#69553B] mr-2 border border-[#69553B] transition-colors"
                       title="Visualizar recibo"
                       onClick={() => abrirRecibo(pagamento)}
                     >
