@@ -66,7 +66,7 @@ export function Header() {
       </div>
       {/* Menu lateral mobile */}
       {menuAberto && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 z-50" onClick={() => setMenuAberto(false)}>
+        <div className="fixed inset-0 z-50" onClick={() => setMenuAberto(false)}>
           <div className="absolute top-0 right-0 w-64 h-full bg-[#DDA329] shadow-lg flex flex-col p-6 gap-4">
             <button
               aria-label="Fechar menu"
