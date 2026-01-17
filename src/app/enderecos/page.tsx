@@ -69,12 +69,12 @@ export default function Enderecos() {
         </button>
       </header>
       <div className="mb-4 flex justify-end">
-        <input
+          <input
           type="text"
           value={busca}
           onChange={aoBuscar}
           placeholder="Buscar por endereço ou pessoa"
-          className="rounded border px-3 py-2 w-full max-w-xs"
+          className="rounded border px-3 py-2 w-full max-w-xs placeholder:text-gray-800"
         />
       </div>
       <section className="rounded-lg bg-white p-4">

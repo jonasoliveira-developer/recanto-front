@@ -894,8 +894,8 @@ export default function Pagamentos() {
       </section>
       <Modal aberto={modalAberto} aoFechar={() => {definirModalAberto(false); setEditando(null);}} titulo={editando ? "Editar pagamento" : "Cadastrar pagamento"}>
         <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Título" value={titulo} onChange={e => setTitulo(e.target.value)} required />
-          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Data do pagamento" type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} required />
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Título" value={titulo} onChange={e => setTitulo(e.target.value)} required />
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Data do pagamento" type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} required />
           <select
             className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
             value={situacao}
@@ -918,12 +918,12 @@ export default function Pagamentos() {
             <option value="1">Pix</option>
             <option value="2">Cartão</option>
           </select>
-          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Valor" type="number" value={valor} onChange={e => setValor(e.target.value)} required />
-          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Desconto" type="number" value={desconto} onChange={e => setDesconto(e.target.value)} />
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Valor" type="number" value={valor} onChange={e => setValor(e.target.value)} required />
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Desconto" type="number" value={desconto} onChange={e => setDesconto(e.target.value)} />
           <label className="flex items-center gap-2 text-base sm:text-lg">
             <input type="checkbox" checked={finalizado} onChange={e => setFinalizado(e.target.checked)} className="bg-white" /> Finalizado
           </label>
-          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Observações" value={obs} onChange={e => setObs(e.target.value)} />
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Observações" value={obs} onChange={e => setObs(e.target.value)} />
           <select
             className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
             value={nomePessoa}

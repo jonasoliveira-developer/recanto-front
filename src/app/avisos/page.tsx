@@ -208,8 +208,8 @@ export default function Avisos() {
       </section>
       <Modal aberto={modalAberto} aoFechar={() => { definirModalAberto(false); setEditando(null); }} titulo={editando ? "Editar aviso" : "Cadastrar aviso"}>
         <form className="flex flex-col gap-3" onSubmit={aoSalvar}>
-          <input className="rounded border px-3 py-2 placeholder:text-gray-700" placeholder="Título" value={form.title} onChange={aoMudarForm} />
-          <input className="rounded border px-3 py-2 placeholder:text-gray-700" placeholder="Descrição" value={form.description} onChange={aoMudarForm} />
+          <input className="rounded border px-3 py-2 placeholder:text-gray-800" placeholder="Título" value={form.title} onChange={aoMudarForm} />
+          <input className="rounded border px-3 py-2 placeholder:text-gray-800" placeholder="Descrição" value={form.description} onChange={aoMudarForm} />
           <button type="submit" className="rounded bg-orange-600 px-4 py-2 text-white hover:bg-orange-700">Salvar</button>
         </form>
       </Modal>

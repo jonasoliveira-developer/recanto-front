@@ -70,22 +70,22 @@ export function Header() {
           <div className="absolute top-0 right-0 w-64 h-full bg-[#DDA329] shadow-lg flex flex-col p-6 gap-4">
             <button
               aria-label="Fechar menu"
-              className="self-end text-2xl mb-4"
+              className="self-end text-4xl mb-4 w-12 h-12 flex items-center justify-center font-extrabold text-gray-700 hover:text-[#4B2E09] transition-all"
               onClick={() => setMenuAberto(false)}
             >×</button>
             {/* Nome do usuário no topo do menu */}
             {estaAutenticado && usuario && (
-              <span className="text-lg text-[#69553B] font-extrabold mb-2">{usuario.email}</span>
+              <span className="text-2xl text-[#69553B] font-extrabold mb-2 break-all">{usuario.email}</span>
             )}
             {estaAutenticado && usuario && (
               <>
-                <Link href="/residents" className={`text-[#4B2E09] hover:underline hover:text-white transition-colors ${pathname === '/residents' ? 'underline font-bold text-white bg-[#69553B] px-2 rounded' : ''}`} onClick={() => setMenuAberto(false)}>Residentes</Link>
-                <Link href="/funcionarios" className={`text-[#4B2E09] hover:underline hover:text-white transition-colors ${pathname === '/funcionarios' ? 'underline font-bold text-white bg-[#69553B] px-2 rounded' : ''}`} onClick={() => setMenuAberto(false)}>Funcionários</Link>
-                <Link href="/ocorrencias" className={`text-[#4B2E09] hover:underline hover:text-white transition-colors ${pathname === '/ocorrencias' ? 'underline font-bold text-white bg-[#69553B] px-2 rounded' : ''}`} onClick={() => setMenuAberto(false)}>Ocorrências</Link>
-                {/* <Link href="/reservas" className="text-[#4B2E09] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Reservas</Link> */}
-                <Link href="/pagamentos" className={`text-[#4B2E09] hover:underline hover:text-white transition-colors ${pathname === '/pagamentos' ? 'underline font-bold text-white bg-[#69553B] px-2 rounded' : ''}`} onClick={() => setMenuAberto(false)}>Pagamentos</Link>
-                <Link href="/avisos" className={`text-[#4B2E09] hover:underline hover:text-white transition-colors ${pathname === '/avisos' ? 'underline font-bold text-white bg-[#69553B] px-2 rounded' : ''}`} onClick={() => setMenuAberto(false)}>Avisos</Link>
-                <Link href="/enderecos" className={`text-[#4B2E09] hover:underline hover:text-white transition-colors ${pathname === '/enderecos' ? 'underline font-bold text-white bg-[#69553B] px-2 rounded' : ''}`} onClick={() => setMenuAberto(false)}>Endereços</Link>
+                <Link href="/residents" className={`text-[#4B2E09] hover:underline hover:text-white transition-colors text-xl font-extrabold uppercase ${pathname === '/residents' ? 'underline font-bold text-white bg-[#69553B] px-2 rounded' : ''}`} onClick={() => setMenuAberto(false)}>RESIDENTES</Link>
+                <Link href="/funcionarios" className={`text-[#4B2E09] hover:underline hover:text-white transition-colors text-xl font-extrabold uppercase ${pathname === '/funcionarios' ? 'underline font-bold text-white bg-[#69553B] px-2 rounded' : ''}`} onClick={() => setMenuAberto(false)}>FUNCIONÁRIOS</Link>
+                <Link href="/ocorrencias" className={`text-[#4B2E09] hover:underline hover:text-white transition-colors text-xl font-extrabold uppercase ${pathname === '/ocorrencias' ? 'underline font-bold text-white bg-[#69553B] px-2 rounded' : ''}`} onClick={() => setMenuAberto(false)}>OCORRÊNCIAS</Link>
+                {/* <Link href="/reservas" className="text-[#4B2E09] hover:underline hover:text-white transition-colors text-xl font-extrabold uppercase" onClick={() => setMenuAberto(false)}>RESERVAS</Link> */}
+                <Link href="/pagamentos" className={`text-[#4B2E09] hover:underline hover:text-white transition-colors text-xl font-extrabold uppercase ${pathname === '/pagamentos' ? 'underline font-bold text-white bg-[#69553B] px-2 rounded' : ''}`} onClick={() => setMenuAberto(false)}>PAGAMENTOS</Link>
+                <Link href="/avisos" className={`text-[#4B2E09] hover:underline hover:text-white transition-colors text-xl font-extrabold uppercase ${pathname === '/avisos' ? 'underline font-bold text-white bg-[#69553B] px-2 rounded' : ''}`} onClick={() => setMenuAberto(false)}>AVISOS</Link>
+                <Link href="/enderecos" className={`text-[#4B2E09] hover:underline hover:text-white transition-colors text-xl font-extrabold uppercase ${pathname === '/enderecos' ? 'underline font-bold text-white bg-[#69553B] px-2 rounded' : ''}`} onClick={() => setMenuAberto(false)}>ENDEREÇOS</Link>
                 {/* <Link href="/portaria" className="text-[#4B2E09] hover:underline hover:text-white transition-colors" onClick={() => setMenuAberto(false)}>Portaria</Link> */}
               </>
             )}
