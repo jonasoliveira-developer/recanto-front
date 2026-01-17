@@ -10,7 +10,7 @@ interface ModalProps {
 export function Modal({ aberto, aoFechar, titulo, children }: ModalProps) {
   if (!aberto) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl p-0 mx-2 h-screen max-h-screen flex flex-col relative">
         <button
           onClick={aoFechar}
