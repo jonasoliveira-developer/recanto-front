@@ -14,6 +14,59 @@ import { Paginacao } from "../../components/Paginacao";
 export default function Pagamentos() {
   // Contexto de autenticação
   const { usuario, token } = useAuth ? useAuth() : { usuario: null, token: null };
+
+  // Estados principais
+  const [pagamentos, setPagamentos] = useState<any[]>([]);
+  const [carregando, setCarregando] = useState<boolean>(false);
+  const [busca, setBusca] = useState<string>("");
+  const [situacaoFiltro, setSituacaoFiltro] = useState<string>("");
+  const [paginaAtual, setPaginaAtual] = useState<number>(1);
+  const itensPorPagina = 10;
+  const [modalAberto, definirModalAberto] = useState<boolean>(false);
+  const [editando, setEditando] = useState<any>(null);
+  const [modalRecibosAberto, setModalRecibosAberto] = useState<boolean>(false);
+  const [reciboAberto, setReciboAberto] = useState<boolean>(false);
+  const [pagamentoRecibo, setPagamentoRecibo] = useState<any>(null);
+  // Para formulário do modal
+  const [titulo, setTitulo] = useState("");
+  const [dataPagamento, setDataPagamento] = useState("");
+  const [situacao, setSituacao] = useState("");
+  const [modoPagamento, setModoPagamento] = useState("");
+  const [valor, setValor] = useState("");
+  const [desconto, setDesconto] = useState("");
+  const [finalizado, setFinalizado] = useState(false);
+  const [obs, setObs] = useState("");
+  const [pessoa, setPessoa] = useState("");
+  const [nomePessoa, setNomePessoa] = useState("");
+  const [endereco, setEndereco] = useState("");
+  // Opções de situação para o select
+  const opcoesSituacao = [
+    { codigo: "0", nome: "Aberto" },
+    { codigo: "1", nome: "Fechado" },
+  ];
+
+  // Estados para selects dinâmicos
+  const [residentes, setResidentes] = useState<any[]>([]);
+  const [enderecos, setEnderecos] = useState<any[]>([]);
+
+  // Carregar residentes e endereços ao abrir modal
+  useEffect(() => {
+    if (modalAberto) {
+      async function fetchData() {
+        try {
+          if (token) {
+            const listaResidentes = await (await import('../../services/recantoApi')).listarResidentes(token);
+            setResidentes(listaResidentes || []);
+            const listaEnderecos = await (await import('../../services/enderecosApi')).listarEnderecos(token);
+            setEnderecos(listaEnderecos || []);
+          }
+        } catch (e) {
+          toast.error('Erro ao carregar residentes ou endereços!');
+        }
+      }
+      fetchData();
+    }
+  }, [modalAberto, token]);
             // Função para gerar PDF do DRE
             function gerarPdfDRE() {
               const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -240,33 +293,41 @@ export default function Pagamentos() {
       async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         try {
+          const id = localStorage.getItem("id");
+          const userName = localStorage.getItem("user");
+          // Garantir formato dd-MM-yyyy para o backend Java
+          function formatarParaDDMMYYYY(data: string) {
+            if (!data) return '';
+            if (data.includes('-')) {
+              // yyyy-MM-dd → dd-MM-yyyy
+              const [ano, mes, dia] = data.split('-');
+              return `${dia.padStart(2, '0')}-${mes.padStart(2, '0')}-${ano}`;
+            }
+            if (data.includes('/')) {
+              // dd/MM/yyyy → dd-MM-yyyy
+              const [dia, mes, ano] = data.split('/');
+              return `${dia.padStart(2, '0')}-${mes.padStart(2, '0')}-${ano}`;
+            }
+            return data;
+          }
+          let dataFormatada = formatarParaDDMMYYYY(dataPagamento);
+          // Enviar enums como inteiros conforme backend Java
+          const payload = {
+            title: titulo,
+            datePayment: dataFormatada,
+            situation: situacao !== '' ? parseInt(situacao, 10) : null,
+            modePayment: modoPagamento !== '' ? parseInt(modoPagamento, 10) : null,
+            cash: valor,
+            discount: desconto,
+            obs,
+            person: pessoa ? parseInt(pessoa, 10) : null,
+            finishPayment: null
+          };
           if (editando) {
-            await atualizarPagamento(editando.id, {
-              title: titulo,
-              datePayment: dataPagamento,
-              situation: situacao,
-              modePayment: modoPagamento,
-              cash: valor,
-              discount: desconto,
-              obs,
-              personId: pessoa,
-              personName: nomePessoa,
-              adress: endereco,
-              }, token || "");
+            await atualizarPagamento(editando.id, payload, token || "");
             toast.success("Pagamento atualizado!");
           } else {
-            await criarPagamento({
-              title: titulo,
-              datePayment: dataPagamento,
-              situation: situacao,
-              modePayment: modoPagamento,
-              cash: valor,
-              discount: desconto,
-              obs,
-              personId: pessoa,
-              personName: nomePessoa,
-              adress: endereco,
-              }, token || "");
+            await criarPagamento(payload, token || "");
             toast.success("Pagamento criado!");
           }
           definirModalAberto(false);
@@ -338,35 +399,7 @@ export default function Pagamentos() {
         });
         window.open(doc.output('bloburl'), '_blank');
       }
-    // Estados principais
-    const [pagamentos, setPagamentos] = useState<any[]>([]);
-    const [carregando, setCarregando] = useState<boolean>(false);
-    const [busca, setBusca] = useState<string>("");
-    const [situacaoFiltro, setSituacaoFiltro] = useState<string>("");
-    const [paginaAtual, setPaginaAtual] = useState<number>(1);
-    const itensPorPagina = 10;
-    const [modalAberto, definirModalAberto] = useState<boolean>(false);
-    const [editando, setEditando] = useState<any>(null);
-    const [modalRecibosAberto, setModalRecibosAberto] = useState<boolean>(false);
-    const [reciboAberto, setReciboAberto] = useState<boolean>(false);
-    const [pagamentoRecibo, setPagamentoRecibo] = useState<any>(null);
-    // Para formulário do modal
-    const [titulo, setTitulo] = useState("");
-    const [dataPagamento, setDataPagamento] = useState("");
-    const [situacao, setSituacao] = useState("");
-    const [modoPagamento, setModoPagamento] = useState("");
-    const [valor, setValor] = useState("");
-    const [desconto, setDesconto] = useState("");
-    const [finalizado, setFinalizado] = useState(false);
-    const [obs, setObs] = useState("");
-    const [pessoa, setPessoa] = useState("");
-    const [nomePessoa, setNomePessoa] = useState("");
-    const [endereco, setEndereco] = useState("");
-    // Opções de situação para o select
-    const opcoesSituacao = [
-      { codigo: "0", nome: "Aberto" },
-      { codigo: "1", nome: "Fechado" },
-    ];
+    // ...estados principais já declarados acima...
 
     // Funções auxiliares para paginação e busca
     const definirBusca = setBusca;
@@ -778,16 +811,49 @@ export default function Pagamentos() {
               <option key={opt.codigo} value={opt.codigo}>{opt.nome}</option>
             ))}
           </select>
-          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Modo de pagamento" value={modoPagamento} onChange={e => setModoPagamento(e.target.value)} required />
+          <select
+            className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
+            value={modoPagamento}
+            onChange={e => setModoPagamento(e.target.value)}
+            required
+          >
+            <option value="">Selecione o método de pagamento</option>
+            <option value="0">Dinheiro</option>
+            <option value="1">Pix</option>
+            <option value="2">Cartão</option>
+          </select>
           <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Valor" type="number" value={valor} onChange={e => setValor(e.target.value)} required />
           <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Desconto" type="number" value={desconto} onChange={e => setDesconto(e.target.value)} />
           <label className="flex items-center gap-2 text-base sm:text-lg">
             <input type="checkbox" checked={finalizado} onChange={e => setFinalizado(e.target.checked)} className="bg-white" /> Finalizado
           </label>
           <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Observações" value={obs} onChange={e => setObs(e.target.value)} />
-          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="ID da pessoa" value={pessoa} onChange={e => setPessoa(e.target.value)} />
-          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Nome da pessoa" value={nomePessoa} onChange={e => setNomePessoa(e.target.value)} />
-          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Endereço" value={endereco} onChange={e => setEndereco(e.target.value)} />
+          <select
+            className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
+            value={nomePessoa}
+            onChange={e => {
+              setNomePessoa(e.target.value);
+              const residente = residentes.find(r => r.name === e.target.value);
+              setPessoa(residente ? residente.id : '');
+            }}
+            required
+          >
+            <option value="">Selecione o residente</option>
+            {residentes.map(r => (
+              <option key={r.id} value={r.name}>{r.name}</option>
+            ))}
+          </select>
+          <select
+            className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
+            value={endereco}
+            onChange={e => setEndereco(e.target.value)}
+            required
+          >
+            <option value="">Selecione o endereço</option>
+            {enderecos.map(e => (
+              <option key={e.id} value={e.adress}>{e.adress}</option>
+            ))}
+          </select>
           <button type="submit" className="rounded bg-pink-600 px-4 py-2 text-white hover:bg-pink-700 cursor-pointer text-base sm:text-lg">Salvar</button>
         </form>
         <ToastContainer position="top-right" autoClose={2000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
