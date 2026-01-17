@@ -12,6 +12,9 @@ import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
 export default function Pagamentos() {
+    // Modal para criar pagamentos em lote
+    const [modalGrupoAberto, setModalGrupoAberto] = useState(false);
+    const [carregandoGrupo, setCarregandoGrupo] = useState(false);
   // Contexto de autenticação
   const { usuario, token } = useAuth ? useAuth() : { usuario: null, token: null };
 
@@ -592,6 +595,99 @@ export default function Pagamentos() {
             </Modal>
       </header>
       <section className="rounded-lg bg-white p-4">
+        <div className="flex flex-row gap-2 mb-4">
+          <button
+            className="rounded-lg bg-green-600 px-6 py-2 text-white font-bold shadow hover:bg-green-700 border border-green-800 transition-colors"
+            onClick={() => setModalGrupoAberto(true)}
+          >
+            Criar para todos
+          </button>
+        </div>
+              {/* Modal de criar pagamentos em lote */}
+              <Modal aberto={modalGrupoAberto} aoFechar={() => setModalGrupoAberto(false)} titulo="Criar pagamento para todos os residentes">
+                <form className="flex flex-col gap-3" onSubmit={async (e) => {
+                  e.preventDefault();
+                  setCarregandoGrupo(true);
+                  try {
+                    // Garantir formato dd-MM-yyyy para o backend Java
+                    function formatarParaDDMMYYYY(data: string) {
+                      if (!data) return '';
+                      if (data.includes('-')) {
+                        const [ano, mes, dia] = data.split('-');
+                        return `${dia.padStart(2, '0')}-${mes.padStart(2, '0')}-${ano}`;
+                      }
+                      if (data.includes('/')) {
+                        const [dia, mes, ano] = data.split('/');
+                        return `${dia.padStart(2, '0')}-${mes.padStart(2, '0')}-${ano}`;
+                      }
+                      return data;
+                    }
+                    const dataFormatada = formatarParaDDMMYYYY(dataPagamento);
+                    let total = 0, erros = 0;
+                    for (const residente of residentes) {
+                      // Buscar endereço do residente
+                      const enderecoResidente = enderecos.find(e => e.person === residente.id);
+                      const payload = {
+                        title: titulo,
+                        datePayment: dataFormatada,
+                        situation: situacao !== '' ? parseInt(situacao, 10) : null,
+                        modePayment: modoPagamento !== '' ? parseInt(modoPagamento, 10) : null,
+                        cash: valor,
+                        discount: desconto,
+                        obs,
+                        person: residente.id,
+                        adress: enderecoResidente ? enderecoResidente.adress : '',
+                        finishPayment: null
+                      };
+                      try {
+                        await criarPagamento(payload, token || "");
+                        total++;
+                      } catch {
+                        erros++;
+                      }
+                    }
+                    toast.success(`Pagamentos criados: ${total}. Erros: ${erros}`);
+                    setModalGrupoAberto(false);
+                    carregarPagamentos();
+                  } catch (err) {
+                    toast.error('Erro ao criar pagamentos em lote!');
+                  } finally {
+                    setCarregandoGrupo(false);
+                  }
+                }}>
+                  <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Título" value={titulo} onChange={e => setTitulo(e.target.value)} required />
+                  <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Data do pagamento" type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} required />
+                  <select
+                    className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
+                    value={situacao}
+                    onChange={e => setSituacao(e.target.value)}
+                    required
+                  >
+                    <option value="">Selecione a situação</option>
+                    {opcoesSituacao.map(opt => (
+                      <option key={opt.codigo} value={opt.codigo}>{opt.nome}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
+                    value={modoPagamento}
+                    onChange={e => setModoPagamento(e.target.value)}
+                    required
+                  >
+                    <option value="">Selecione o método de pagamento</option>
+                    <option value="0">Dinheiro</option>
+                    <option value="1">Pix</option>
+                    <option value="2">Cartão</option>
+                  </select>
+                  <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Valor" type="number" value={valor} onChange={e => setValor(e.target.value)} required />
+                  <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Desconto" type="number" value={desconto} onChange={e => setDesconto(e.target.value)} />
+                  <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Observações" value={obs} onChange={e => setObs(e.target.value)} />
+                  <button type="submit" className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 cursor-pointer text-base sm:text-lg" disabled={carregandoGrupo}>
+                    {carregandoGrupo ? 'Criando...' : 'Criar para todos'}
+                  </button>
+                </form>
+                <ToastContainer position="top-right" autoClose={2000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
+              </Modal>
         {carregando ? (
           <p className="text-center text-pink-700">Carregando...</p>
         ) : pagamentosFiltrados.length === 0 ? (
