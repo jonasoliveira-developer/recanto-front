@@ -559,7 +559,7 @@ export default function Pagamentos() {
         </section>
             {/* Modal de recibos em lote */}
             <Modal aberto={modalRecibosAberto} aoFechar={() => setModalRecibosAberto(false)} titulo="Recibos em lote" >
-              <div className="max-h-[90vh] w-full max-w-5xl mx-auto flex flex-col bg-[#FFF] p-6 overflow-auto border border-[#C3B4A8]">
+              <div className="max-h-[90vh] w-full max-w-5xl mx-auto flex flex-col bg-[#FFF] px-2 sm:px-6 py-0 sm:py-6 overflow-auto">
                 <div className="flex flex-row gap-2 items-center justify-end mb-4">
                   <button
                     className="flex items-center gap-2 bg-[#69553B] hover:bg-[#DDA329] text-[#FFF] hover:text-[#69553B] px-4 py-2 rounded shadow h-10 border border-[#69553B] font-bold transition-colors"
@@ -573,18 +573,18 @@ export default function Pagamentos() {
                     <div className="text-center text-gray-500">Nenhum pagamento encontrado.</div>
                   )}
                   {pagamentosFiltrados.map((recibo, idx) => (
-                    <div key={recibo.id || idx} className="border rounded p-4 bg-gray-50">
-                      <div className="font-bold text-pink-800 mb-2">Recibo #{recibo.id}</div>
-                      <div><b>TÍTULO:</b> {recibo.title || '-'}</div>
-                      <div><b>VALOR:</b> {recibo.cash !== undefined ? 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</div>
-                      <div><b>TIPO PAGAMENTO:</b> {modePaymentReturn(recibo.modePayment)}</div>
-                      <div><b>DATA PAGAMENTO:</b> {formatarDataBarra(recibo.datePayment)}</div>
-                      <div><b>DATA FECHAMENTO:</b> {formatarDataBarra(recibo.finishPayment)}</div>
-                      <div><b>SITUAÇÃO:</b> {situationReturn(recibo.situation)}</div>
-                      <div><b>NOME:</b> {recibo.personName || '-'}</div>
-                      <div><b>ENDEREÇO:</b> {recibo.adress || '-'}</div>
-                      <div><b>OBSERVAÇÕES:</b> {recibo.obs || '-'}</div>
-                      <div className="text-xs text-gray-400 mt-2">ID: {recibo.id}</div>
+                    <div key={recibo.id || idx} className="border rounded p-4 bg-white text-sm sm:text-base md:text-base leading-relaxed space-y-2 w-full mx-0">
+                      <div className="font-bold text-pink-900 mb-3 text-base sm:text-base md:text-lg">Recibo #{recibo.id}</div>
+                      <div className="break-words"><b className="text-black">TÍTULO:</b> <span className="text-black">{recibo.title || '-'}</span></div>
+                      <div className="break-words"><b className="text-black">VALOR:</b> <span className="text-black">{recibo.cash !== undefined ? 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</span></div>
+                      <div className="break-words"><b className="text-black">TIPO PAGAMENTO:</b> <span className="text-black">{modePaymentReturn(recibo.modePayment)}</span></div>
+                      <div className="break-words"><b className="text-black">DATA PAGAMENTO:</b> <span className="text-black">{formatarDataBarra(recibo.datePayment)}</span></div>
+                      <div className="break-words"><b className="text-black">DATA FECHAMENTO:</b> <span className="text-black">{formatarDataBarra(recibo.finishPayment)}</span></div>
+                      <div className="break-words"><b className="text-black">SITUAÇÃO:</b> <span className="text-black">{situationReturn(recibo.situation)}</span></div>
+                      <div className="break-words"><b className="text-black">NOME:</b> <span className="text-black">{recibo.personName || '-'}</span></div>
+                      <div className="break-words"><b className="text-black">ENDEREÇO:</b> <span className="text-black">{recibo.adress || '-'}</span></div>
+                      <div className="break-words"><b className="text-black">OBSERVAÇÕES:</b> <span className="text-black">{recibo.obs || '-'}</span></div>
+                      <div className="text-xs text-black mt-3">ID: {recibo.id}</div>
                     </div>
                   ))}
                 </div>
