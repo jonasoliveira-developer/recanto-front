@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { listarAvisos, atualizarAviso } from "../../services/avisosApi";
+import { listarAvisos, atualizarAviso, removerAviso, criarAviso } from "../../services/avisosApi";
 import { useAuth, UserRole, hasRole } from "../../context/AuthContext";
 import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
@@ -91,6 +91,13 @@ export default function Avisos() {
     setForm({ ...form, [e.target.placeholder === "Data de abertura" ? "openDate" : e.target.placeholder === "Título" ? "title" : e.target.placeholder === "Descrição" ? "description" : "personName"]: e.target.value });
   }
 
+
+  async function aoExcluir(avisoId: number) {
+    if (!token) return;
+    await removerAviso(avisoId, token);
+    definirAvisos((avisos) => avisos.filter(a => a.id !== avisoId));
+  }
+
   async function aoSalvar(e: React.FormEvent) {
     e.preventDefault();
     if (!token) {
@@ -100,15 +107,54 @@ export default function Avisos() {
     }
     if (editando) {
       // Editar aviso existente
-      await atualizarAviso(editando.id, form, token);
-      definirAvisos((avisos) => avisos.map(a => a.id === editando.id ? { ...a, ...form } : a));
+      const id = localStorage.getItem("id");
+      const userName = localStorage.getItem("user");
+      const hoje = new Date();
+      const dia = String(hoje.getDate()).padStart(2, '0');
+      const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+      const ano = hoje.getFullYear();
+      const dateOpen = `${dia}/${mes}/${ano}`;
+      const avisoEditado = {
+        ...form,
+        person: id ? Number(id) : undefined,
+        personName: userName,
+        dateOpen
+      };
+      await atualizarAviso(editando.id, avisoEditado, token);
+      definirAvisos((avisos) => avisos.map(a => a.id === editando.id ? { ...a, ...avisoEditado } : a));
       definirModalAberto(false);
       setEditando(null);
       return;
     }
-    // Criar novo aviso (mantém lógica anterior)
-    definirModalAberto(false);
-    setEditando(null);
+    // Criar novo aviso
+    const id = localStorage.getItem("id");
+    const userName = localStorage.getItem("user");
+    const hoje = new Date();
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const ano = hoje.getFullYear();
+    const dateOpen = `${dia}/${mes}/${ano}`;
+    const novoAviso = {
+      ...form,
+      person: id ? Number(id) : undefined,
+      personName: userName,
+      dateOpen
+    };
+    try {
+      const avisoCriado = await criarAviso(novoAviso, token);
+      definirAvisos((avisos) => [avisoCriado, ...avisos]);
+      definirModalAberto(false);
+      setEditando(null);
+    } catch (error: any) {
+      if (error?.response?.data?.errors) {
+        error.response.data.errors.forEach((e: any) => {
+          alert(e.message);
+        });
+      } else {
+        alert(error?.response?.data?.message || "Erro ao criar aviso");
+      }
+      console.error(error);
+    }
   }
 
   return (
@@ -145,7 +191,10 @@ export default function Avisos() {
                   <h2 className="text-lg font-semibold text-orange-800">{aviso.title}</h2>
                   <p className="text-sm text-gray-600">{aviso.description}</p>
                   <p className="text-sm text-gray-600">Autor: {aviso.personName}</p>
-                  <button className="mt-2 rounded bg-orange-500 px-3 py-1 text-white hover:bg-orange-700" onClick={() => abrirModalEditar(aviso)}>Editar</button>
+                  <div className="flex gap-2 mt-2">
+                    <button className="rounded bg-orange-500 px-3 py-1 text-white hover:bg-orange-700" onClick={() => abrirModalEditar(aviso)}>Editar</button>
+                    <button className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-800" onClick={() => aoExcluir(aviso.id)}>Excluir</button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -161,7 +210,6 @@ export default function Avisos() {
         <form className="flex flex-col gap-3" onSubmit={aoSalvar}>
           <input className="rounded border px-3 py-2 placeholder:text-gray-700" placeholder="Título" value={form.title} onChange={aoMudarForm} />
           <input className="rounded border px-3 py-2 placeholder:text-gray-700" placeholder="Descrição" value={form.description} onChange={aoMudarForm} />
-          <input className="rounded border px-3 py-2 placeholder:text-gray-700" placeholder="Autor" value={form.personName} onChange={aoMudarForm} />
           <button type="submit" className="rounded bg-orange-600 px-4 py-2 text-white hover:bg-orange-700">Salvar</button>
         </form>
       </Modal>
