@@ -211,12 +211,14 @@ export default function Pagamentos() {
         const anoAtual = new Date().getFullYear();
         const anos = Array.from({ length: 11 }, (_, i) => anoAtual - 5 + i);
         // Estado dos selects de filtro
-        const [mesInicial, setMesInicial] = useState(() => String(new Date().getMonth() + 1).padStart(2, '0'));
-        const [anoInicial, setAnoInicial] = useState(() => String(anoAtual));
-        // Data final: 1 mês depois do mês atual
-        const nextMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
-        const [mesFinal, setMesFinal] = useState(() => String(nextMonth.getMonth() + 1).padStart(2, '0'));
-        const [anoFinal, setAnoFinal] = useState(() => String(nextMonth.getFullYear()));
+        // Data inicial: primeiro dia do mês atual
+        const hoje = new Date();
+        const [mesInicial, setMesInicial] = useState(() => String(hoje.getMonth() + 1).padStart(2, '0'));
+        const [anoInicial, setAnoInicial] = useState(() => String(hoje.getFullYear()));
+        // Data final: último dia do mês atual
+        const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+        const [mesFinal, setMesFinal] = useState(() => String(ultimoDia.getMonth() + 1).padStart(2, '0'));
+        const [anoFinal, setAnoFinal] = useState(() => String(ultimoDia.getFullYear()));
 
       // ...já declarado no início do componente...
 
@@ -431,26 +433,49 @@ export default function Pagamentos() {
     if (partes.length !== 3) return null;
     return new Date(Number(partes[2]), Number(partes[1]) - 1, Number(partes[0]), 12, 0, 0, 0);
   }
-  const dataInicioFiltro = parseDataInicio(mesInicial, anoInicial);
-  const dataFimFiltro = parseDataFim(mesFinal, anoFinal);
-  const pagamentosFiltrados = pagamentos.filter((pagamento) => {
-    const dataPag = parseDataPagamento(pagamento.datePayment);
-    if (!dataPag) return false;
-    if (dataPag < dataInicioFiltro || dataPag > dataFimFiltro) return false;
-    // Filtro de busca e situação
+  const [pagamentosFiltrados, setPagamentosFiltrados] = useState<any[]>([]);
+  useEffect(() => {
     const termo = busca.toLowerCase();
-    const textoOk =
-      !termo ||
-      pagamento.title?.toLowerCase().includes(termo) ||
-      pagamento.personName?.toLowerCase().includes(termo);
-    let situacaoOk = true;
-    if (situacaoFiltro === '0') {
-      situacaoOk = String(pagamento.situation) === '0';
-    } else if (situacaoFiltro === '1') {
-      situacaoOk = String(pagamento.situation) === '1';
-    }
-    return textoOk && situacaoOk;
-  });
+    // Converter selects para datas reais
+    const dataInicioFiltro = new Date(Number(anoInicial), Number(mesInicial) - 1, 1, 0, 0, 0, 0);
+    // Último dia do mês selecionado
+    const ultimoDia = new Date(Number(anoFinal), Number(mesFinal), 0, 23, 59, 59, 999);
+    const dataFimFiltro = ultimoDia;
+
+    const novaLista = pagamentos.filter((pagamento) => {
+      // datePayment pode vir como yyyy-MM-dd ou yyyy-MM-ddTHH:mm:ss
+      let dataPag: Date | null = null;
+      if (pagamento.datePayment) {
+        // Pega só a parte da data
+        const dataStr = String(pagamento.datePayment).split('T')[0];
+        let ano, mes, dia;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) {
+          // yyyy-MM-dd
+          [ano, mes, dia] = dataStr.split('-');
+        } else if (/^\d{2}-\d{2}-\d{4}$/.test(dataStr)) {
+          // dd-MM-yyyy
+          [dia, mes, ano] = dataStr.split('-');
+        }
+        if (ano && mes && dia) {
+          dataPag = new Date(Number(ano), Number(mes) - 1, Number(dia), 12, 0, 0, 0);
+        }
+      }
+      if (!dataPag) return false;
+      if (dataPag < dataInicioFiltro || dataPag > dataFimFiltro) return false;
+      const textoOk =
+        !termo ||
+        pagamento.title?.toLowerCase().includes(termo) ||
+        pagamento.personName?.toLowerCase().includes(termo);
+      let situacaoOk = true;
+      if (situacaoFiltro === '0') {
+        situacaoOk = String(pagamento.situation) === '0';
+      } else if (situacaoFiltro === '1') {
+        situacaoOk = String(pagamento.situation) === '1';
+      }
+      return textoOk && situacaoOk;
+    });
+    setPagamentosFiltrados(novaLista);
+  }, [pagamentos, mesInicial, anoInicial, busca, situacaoFiltro]);
 
   // Cálculo do demonstrativo DRE (deve vir após pagamentosFiltrados)
   const totalRecebido = pagamentosFiltrados.filter(p => p.situation === 1).reduce((acc, p) => acc + Number(p.cash || 0), 0);
@@ -479,7 +504,7 @@ export default function Pagamentos() {
     <div className="min-h-screen bg-[#FFF] p-4 font-sans">
       <header className="mb-6">
         {/* Removido bloco de associação em duas linhas */}
-        <h1 className="text-2xl font-extrabold text-[#69553B] mb-6 tracking-wider">Pagamentos</h1>
+        <h1 className="text-2xl font-extrabold text-[#69553B] mb-2 tracking-wider">Pagamentos</h1>
         <section className="rounded-lg bg-pink-100 p-4 mb-4 border border-[#C3B4A8]">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             {/* Filtros de data inicial/final */}
@@ -532,13 +557,16 @@ export default function Pagamentos() {
                 </div>
               </div>
               <div className="flex flex-row gap-2 flex-wrap items-end mt-2">
-                <input
-                  type="text"
-                  value={busca}
-                  onChange={aoBuscar}
-                  placeholder="Buscar por título ou pessoa"
-                  className="rounded border border-[#C3B4A8] px-3 py-2 grow min-w-0 focus:ring-2 focus:ring-[#DDA329] bg-white"
-                />
+                <div className="flex flex-col w-full">
+                  <input
+                    type="text"
+                    value={busca}
+                    onChange={aoBuscar}
+                    placeholder="Buscar por título ou pessoa"
+                    className="rounded border border-[#C3B4A8] px-3 py-2 grow min-w-0 focus:ring-2 focus:ring-[#DDA329] bg-white"
+                  />
+                  {/* Contador removido daqui */}
+                </div>
                 <select
                   value={situacaoFiltro}
                   onChange={e => {
@@ -556,6 +584,10 @@ export default function Pagamentos() {
                   <option value="0">Aberto</option>
                   <option value="1">Fechado</option>
                 </select>
+              {/* fechamento removido para corrigir JSX */}
+              <div className="w-full flex justify-end">
+                <div className="text-base text-gray-700 mt-1 font-semibold">pagamentos: {pagamentosFiltrados.length}</div>
+              </div>
               </div>
             </div>
           </div>
@@ -954,6 +986,7 @@ export default function Pagamentos() {
         </form>
         <ToastContainer position="top-right" autoClose={2000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
       </Modal>
+      {/* Contador removido do final */}
       {/* Modal DRE - demonstrativo de resultados do exercício */}
       <Modal aberto={modalDREAberto} aoFechar={() => setModalDREAberto(false)} titulo="Demonstrativo de Resultados (DRE)">
         <div className="max-w-5xl mx-auto p-8 bg-white print:p-4 rounded shadow print:shadow-none border print:border-0">
