@@ -1,9 +1,9 @@
-
 "use client";
+
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { FaRegFileAlt, FaPrint } from "react-icons/fa";
 import { jsPDF } from "jspdf";
-import dayjs from "dayjs";
 import { listarPagamentos, criarPagamento, atualizarPagamento, removerPagamento } from "../../services/pagamentosApi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -12,6 +12,21 @@ import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
 export default function Pagamentos() {
+      // Utilitário para exibir datas no formato dd/MM/yyyy
+      function formatarDataParaTela(data: string | undefined) {
+        if (!data) return "";
+        // yyyy-MM-dd ou yyyy/MM/dd
+        if (/^\d{4}[-\/]\d{2}[-\/]\d{2}$/.test(data)) {
+          const partes = data.split(/[-\/]/);
+          return `${partes[2].padStart(2, '0')}/${partes[1].padStart(2, '0')}/${partes[0]}`;
+        }
+        // dd-MM-yyyy ou dd/MM/yyyy
+        if (/^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test(data)) {
+          const partes = data.split(/[-\/]/);
+          return `${partes[0].padStart(2, '0')}/${partes[1].padStart(2, '0')}/${partes[2]}`;
+        }
+        return data.replace(/-/g, '/');
+      }
     // Modal para criar pagamentos em lote
     const [modalGrupoAberto, setModalGrupoAberto] = useState(false);
     const [carregandoGrupo, setCarregandoGrupo] = useState(false);
@@ -52,6 +67,27 @@ export default function Pagamentos() {
   const [residentes, setResidentes] = useState<any[]>([]);
   const [enderecos, setEnderecos] = useState<any[]>([]);
 
+  // Carregar residentes e endereços ao abrir modal de pagamentos em lote
+  useEffect(() => {
+    if (modalGrupoAberto) {
+      async function fetchDataGrupo() {
+        try {
+          if (token) {
+          const listaResidentes = await (await import('../../services/recantoApi')).listarResidentes(token);
+          setResidentes(listaResidentes || []);
+          const listaEnderecos = await (await import('../../services/enderecosApi')).listarEnderecos(token);
+          setEnderecos(listaEnderecos || []);
+          console.log('Residentes carregados (modal grupo):', listaResidentes);
+          console.log('Endereços carregados (modal grupo):', listaEnderecos);
+        }
+      } catch (e) {
+        toast.error('Erro ao carregar residentes ou endereços para o grupo!');
+      }
+    }
+    fetchDataGrupo();
+  }
+}, [modalGrupoAberto, token]);
+
   // Carregar residentes e endereços ao abrir modal
   useEffect(() => {
     if (modalAberto) {
@@ -62,6 +98,8 @@ export default function Pagamentos() {
             setResidentes(listaResidentes || []);
             const listaEnderecos = await (await import('../../services/enderecosApi')).listarEnderecos(token);
             setEnderecos(listaEnderecos || []);
+            console.log('Residentes carregados (modal grupo):', listaResidentes);
+            console.log('Endereços carregados (modal grupo):', listaEnderecos);
           }
         } catch (e) {
           toast.error('Erro ao carregar residentes ou endereços!');
@@ -226,8 +264,9 @@ export default function Pagamentos() {
       async function carregarPagamentos() {
         setCarregando(true);
         try {
-            const lista = await listarPagamentos(token || "");
+          const lista = await listarPagamentos(token || "");
           setPagamentos(lista || []);
+          console.log('LOG lista de pagamentos (list4):', lista);
         } catch (e) {
           toast.error("Erro ao carregar pagamentos!");
         } finally {
@@ -257,18 +296,33 @@ export default function Pagamentos() {
       }
 
       // Abrir modal editar
+      function formatarDataParaInput(data: string) {
+        if (!data) return "";
+        // Aceita formatos ISO ou yyyy-MM-dd
+        if (data.includes("-")) {
+          const partes = data.split("-");
+          if (partes[0].length === 4) {
+            // yyyy-MM-dd para dd/MM/yyyy
+            return `${partes[2].padStart(2, '0')}/${partes[1].padStart(2, '0')}/${partes[0]}`;
+          }
+        }
+        // Se já está em dd/MM/yyyy
+        if (data.includes("/")) return data;
+        return data;
+      }
+
       function abrirModalEditar(pagamento: any) {
         setEditando(pagamento);
         definirModalAberto(true);
         setTitulo(pagamento.title || "");
-        setDataPagamento(pagamento.datePayment || "");
+        setDataPagamento(formatarDataParaInput(pagamento.datePayment || ""));
         setSituacao(String(pagamento.situation ?? ""));
-        setModoPagamento(pagamento.modePayment || "");
+        setModoPagamento(pagamento.modePayment !== undefined && pagamento.modePayment !== null ? String(pagamento.modePayment) : "");
         setValor(pagamento.cash || "");
         setDesconto(pagamento.discount || "");
         setFinalizado(pagamento.situation === 1);
         setObs(pagamento.obs || "");
-        setPessoa(pagamento.personId || "");
+        setPessoa(pagamento.personId || pagamento.person || "");
         setNomePessoa(pagamento.personName || "");
         setEndereco(pagamento.adress || "");
       }
@@ -565,7 +619,6 @@ export default function Pagamentos() {
                     placeholder="Buscar por título ou pessoa"
                     className="rounded border border-[#C3B4A8] px-3 py-2 grow min-w-0 focus:ring-2 focus:ring-[#DDA329] bg-white"
                   />
-                  {/* Contador removido daqui */}
                 </div>
                 <select
                   value={situacaoFiltro}
@@ -584,10 +637,9 @@ export default function Pagamentos() {
                   <option value="0">Aberto</option>
                   <option value="1">Fechado</option>
                 </select>
-              {/* fechamento removido para corrigir JSX */}
-              <div className="w-full flex justify-end">
-                <div className="text-base text-gray-700 mt-1 font-semibold">pagamentos: {pagamentosFiltrados.length}</div>
-              </div>
+                <div className="w-full flex justify-end">
+                  <div className="text-base text-gray-700 mt-1 font-semibold">pagamentos: {pagamentosFiltrados.length}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -613,8 +665,8 @@ export default function Pagamentos() {
                       <div className="break-words"><b className="text-black">TÍTULO:</b> <span className="text-black">{recibo.title || '-'}</span></div>
                       <div className="break-words"><b className="text-black">VALOR:</b> <span className="text-black">{recibo.cash !== undefined ? 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</span></div>
                       <div className="break-words"><b className="text-black">TIPO PAGAMENTO:</b> <span className="text-black">{modePaymentReturn(recibo.modePayment)}</span></div>
-                      <div className="break-words"><b className="text-black">DATA PAGAMENTO:</b> <span className="text-black">{formatarDataBarra(recibo.datePayment)}</span></div>
-                      <div className="break-words"><b className="text-black">DATA FECHAMENTO:</b> <span className="text-black">{formatarDataBarra(recibo.finishPayment)}</span></div>
+                      <div className="break-words"><b className="text-black">DATA PAGAMENTO:</b> <span className="text-black">{formatarDataParaTela(recibo.datePayment)}</span></div>
+                      <div className="break-words"><b className="text-black">DATA FECHAMENTO:</b> <span className="text-black">{formatarDataParaTela(recibo.finishPayment)}</span></div>
                       <div className="break-words"><b className="text-black">SITUAÇÃO:</b> <span className="text-black">{situationReturn(recibo.situation)}</span></div>
                       <div className="break-words"><b className="text-black">NOME:</b> <span className="text-black">{recibo.personName || '-'}</span></div>
                       <div className="break-words"><b className="text-black">ENDEREÇO:</b> <span className="text-black">{recibo.adress || '-'}</span></div>
@@ -640,6 +692,7 @@ export default function Pagamentos() {
                 <form className="flex flex-col gap-3" onSubmit={async (e) => {
                   e.preventDefault();
                   setCarregandoGrupo(true);
+                  console.log('Iniciando criação em lote de pagamentos');
                   try {
                     // Garantir formato dd-MM-yyyy para o backend Java
                     function formatarParaDDMMYYYY(data: string) {
@@ -655,10 +708,16 @@ export default function Pagamentos() {
                       return data;
                     }
                     const dataFormatada = formatarParaDDMMYYYY(dataPagamento);
+                    console.log('Data formatada:', dataFormatada);
                     let total = 0, erros = 0;
+                    console.log('Residentes:', residentes);
+                    console.log('Endereços:', enderecos);
                     for (const residente of residentes) {
+                      console.log('Processando residente:', residente);
                       // Buscar endereço do residente
                       const enderecoResidente = enderecos.find(e => e.person === residente.id);
+                      console.log('Endereço encontrado:', enderecoResidente);
+                      // Cria um novo objeto de pagamento para cada residente
                       const payload = {
                         title: titulo,
                         datePayment: dataFormatada,
@@ -671,14 +730,18 @@ export default function Pagamentos() {
                         adress: enderecoResidente ? enderecoResidente.adress : '',
                         finishPayment: null
                       };
+                      console.log('Payload para criação:', payload);
                       try {
-                        await criarPagamento(payload, token || "");
+                        const resp = await criarPagamento(payload, token || "");
+                        console.log('Pagamento criado:', resp);
                         total++;
-                      } catch {
+                      } catch (err) {
+                        console.error('Erro ao criar pagamento:', err);
                         erros++;
                       }
                     }
-                    toast.success(`Pagamentos criados: ${total}. Erros: ${erros}`);
+                    console.log('Final do processamento em lote. Total criados:', total, 'Erros:', erros);
+                    toast.success(`Pagamentos em lote finalizados! Criados: ${total}, Erros: ${erros}`);
                     setModalGrupoAberto(false);
                     carregarPagamentos();
                   } catch (err) {
@@ -905,8 +968,8 @@ export default function Pagamentos() {
                   <div><b>TÍTULO:</b> {pagamentoRecibo.title || '-'}</div>
                   <div><b>VALOR:</b> {pagamentoRecibo.cash !== undefined ? 'R$ ' + Number(pagamentoRecibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</div>
                   <div><b>TIPO PAGAMENTO:</b> {modePaymentReturn(pagamentoRecibo.modePayment)}</div>
-                  <div><b>DATA PAGAMENTO:</b> {formatarDataBarra(pagamentoRecibo.datePayment)}</div>
-                  <div><b>DATA FECHAMENTO:</b> {formatarDataBarra(pagamentoRecibo.finishPayment)}</div>
+                  <div><b>DATA PAGAMENTO:</b> {formatarDataParaTela(pagamentoRecibo.datePayment)}</div>
+                  <div><b>DATA FECHAMENTO:</b> {formatarDataParaTela(pagamentoRecibo.finishPayment)}</div>
                   <div><b>SITUAÇÃO:</b> {situationReturn(pagamentoRecibo.situation)}</div>
                   <div><b>NOME:</b> {pagamentoRecibo.personName || '-'}</div>
                   <div><b>ENDEREÇO:</b> {pagamentoRecibo.adress || '-'}</div>
@@ -927,7 +990,16 @@ export default function Pagamentos() {
       <Modal aberto={modalAberto} aoFechar={() => {definirModalAberto(false); setEditando(null);}} titulo={editando ? "Editar pagamento" : "Cadastrar pagamento"}>
         <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
           <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Título" value={titulo} onChange={e => setTitulo(e.target.value)} required />
-          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Data do pagamento" type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} required />
+          <input
+            className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800"
+            placeholder="Data do pagamento (dd/MM/yyyy)"
+            type="text"
+            value={dataPagamento}
+            onChange={e => setDataPagamento(e.target.value)}
+            required
+            pattern="^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{4}$"
+            title="Digite a data no formato dd/MM/yyyy"
+          />
           <select
             className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
             value={situacao}
@@ -1040,7 +1112,7 @@ export default function Pagamentos() {
                       <td className="px-4 py-3 border text-left whitespace-nowrap">{p.title}</td>
                       <td className="px-4 py-3 border text-center whitespace-nowrap">{situationReturn(p.situation)}</td>
                       <td className="px-4 py-3 border text-right whitespace-nowrap">R$ {Number(p.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                      <td className="px-4 py-3 border text-center whitespace-nowrap">{formatarDataBarra(p.datePayment)}</td>
+                      <td className="px-4 py-3 border text-center whitespace-nowrap">{formatarDataParaTela(p.datePayment)}</td>
                       <td className="px-4 py-3 border text-left whitespace-nowrap text-[10px] text-gray-700">{p.personName}</td>
                     </tr>
                     <tr key={p.id + '-line'}>
@@ -1057,7 +1129,7 @@ export default function Pagamentos() {
                 <div className="font-bold text-pink-900 text-base mb-1">{p.title}</div>
                 <div className="text-xs text-gray-700 mb-1"><span className="font-semibold">Situação:</span> {situationReturn(p.situation)}</div>
                 <div className="text-xs text-gray-700 mb-1"><span className="font-semibold">Valor:</span> R$ {Number(p.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-                <div className="text-xs text-gray-700 mb-1"><span className="font-semibold">Data Pagamento:</span> {formatarDataBarra(p.datePayment)}</div>
+                <div className="text-xs text-gray-700 mb-1"><span className="font-semibold">Data Pagamento:</span> {formatarDataParaTela(p.datePayment)}</div>
                 <div className="text-xs text-gray-700"><span className="font-semibold">Pessoa:</span> <span className="text-[10px]">{p.personName}</span></div>
               </div>
             ))}

@@ -8,6 +8,16 @@ interface ModalProps {
 }
 
 export function Modal({ aberto, aoFechar, titulo, children }: ModalProps) {
+  React.useEffect(() => {
+    if (aberto) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, [aberto]);
   if (!aberto) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center min-h-screen bg-black/60 backdrop-blur">
