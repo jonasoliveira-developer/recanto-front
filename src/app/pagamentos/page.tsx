@@ -663,7 +663,7 @@ export default function Pagamentos() {
                       <div className="break-words"><b className="text-black">TÍTULO:</b> <span className="text-black">{recibo.title || '-'}</span></div>
                       <div className="break-words"><b className="text-black">VALOR:</b> <span className="text-black">{recibo.cash !== undefined ? 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</span></div>
                       <div className="break-words"><b className="text-black">TIPO PAGAMENTO:</b> <span className="text-black">{modePaymentReturn(recibo.modePayment)}</span></div>
-                      <div className="break-words"><b className="text-black">DATA PAGAMENTO:</b> <span className="text-black">{formatarDataParaTela(recibo.datePayment)}</span></div>
+                      <div className="break-words"><b className="text-black">DATA ABERTURA:</b> <span className="text-black">{formatarDataParaTela(recibo.datePayment)}</span></div>
                       <div className="break-words"><b className="text-black">DATA FECHAMENTO:</b> <span className="text-black">{formatarDataParaTela(recibo.finishPayment)}</span></div>
                       <div className="break-words"><b className="text-black">SITUAÇÃO:</b> <span className="text-black">{situationReturn(recibo.situation)}</span></div>
                       <div className="break-words"><b className="text-black">NOME:</b> <span className="text-black">{recibo.personName || '-'}</span></div>
@@ -935,7 +935,7 @@ export default function Pagamentos() {
                   <div><b>TÍTULO:</b> {pagamentoRecibo.title || '-'}</div>
                   <div><b>VALOR:</b> {pagamentoRecibo.cash !== undefined ? 'R$ ' + Number(pagamentoRecibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</div>
                   <div><b>TIPO PAGAMENTO:</b> {modePaymentReturn(pagamentoRecibo.modePayment)}</div>
-                  <div><b>DATA PAGAMENTO:</b> {formatarDataParaTela(pagamentoRecibo.datePayment)}</div>
+                  <div><b>DATA ABERTURA:</b> {formatarDataParaTela(pagamentoRecibo.datePayment)}</div>
                   <div><b>DATA FECHAMENTO:</b> {formatarDataParaTela(pagamentoRecibo.finishPayment)}</div>
                   <div><b>SITUAÇÃO:</b> {situationReturn(pagamentoRecibo.situation)}</div>
                   <div><b>NOME:</b> {pagamentoRecibo.personName || '-'}</div>
@@ -1050,7 +1050,7 @@ export default function Pagamentos() {
                   <th className="px-4 py-3 border text-left">Título</th>
                   <th className="px-4 py-3 border text-center">Situação</th>
                   <th className="px-4 py-3 border text-right">Valor</th>
-                  <th className="px-4 py-3 border text-center">Data Pagamento</th>
+                  <th className="px-4 py-3 border text-center">Data Abertura</th>
                   <th className="px-4 py-3 border text-left">Pessoa</th>
                 </tr>
               </thead>
@@ -1078,7 +1078,7 @@ export default function Pagamentos() {
                 <div className="font-bold text-pink-900 text-base mb-1">{p.title}</div>
                 <div className="text-xs text-gray-700 mb-1"><span className="font-semibold">Situação:</span> {situationReturn(p.situation)}</div>
                 <div className="text-xs text-gray-700 mb-1"><span className="font-semibold">Valor:</span> R$ {Number(p.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-                <div className="text-xs text-gray-700 mb-1"><span className="font-semibold">Data Pagamento:</span> {formatarDataParaTela(p.datePayment)}</div>
+                <div className="text-xs text-gray-700 mb-1"><span className="font-semibold">Data Abertura:</span> {formatarDataParaTela(p.datePayment)}</div>
                 <div className="text-xs text-gray-700"><span className="font-semibold">Pessoa:</span> <span className="text-[10px]">{p.personName}</span></div>
               </div>
             ))}
