@@ -373,14 +373,12 @@ export default function Pagamentos() {
           // Enviar enums como inteiros conforme backend Java
           const payload = {
             title: titulo,
-            datePayment: dataFormatada,
-            situation: situacao !== '' ? parseInt(situacao, 10) : null,
-            modePayment: modoPagamento !== '' ? parseInt(modoPagamento, 10) : null,
+            situation: situacao,
+            modePayment: modoPagamento,
             cash: valor,
-            discount: desconto,
-            obs,
-            person: pessoa ? parseInt(pessoa, 10) : null,
-            finishPayment: null
+            person: pessoa,
+            adress: endereco,
+            obs: obs
           };
           if (editando) {
             await atualizarPagamento(editando.id, payload, token || "");
@@ -990,16 +988,6 @@ export default function Pagamentos() {
       <Modal aberto={modalAberto} aoFechar={() => {definirModalAberto(false); setEditando(null);}} titulo={editando ? "Editar pagamento" : "Cadastrar pagamento"}>
         <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
           <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Título" value={titulo} onChange={e => setTitulo(e.target.value)} required />
-          <input
-            className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800"
-            placeholder="Data do pagamento (dd/MM/yyyy)"
-            type="text"
-            value={dataPagamento}
-            onChange={e => setDataPagamento(e.target.value)}
-            required
-            pattern="^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{4}$"
-            title="Digite a data no formato dd/MM/yyyy"
-          />
           <select
             className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
             value={situacao}
@@ -1023,24 +1011,15 @@ export default function Pagamentos() {
             <option value="2">Cartão</option>
           </select>
           <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Valor" type="number" value={valor} onChange={e => setValor(e.target.value)} required />
-          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Desconto" type="number" value={desconto} onChange={e => setDesconto(e.target.value)} />
-          <label className="flex items-center gap-2 text-base sm:text-lg">
-            <input type="checkbox" checked={finalizado} onChange={e => setFinalizado(e.target.checked)} className="bg-white" /> Finalizado
-          </label>
-          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Observações" value={obs} onChange={e => setObs(e.target.value)} />
           <select
             className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
-            value={nomePessoa}
-            onChange={e => {
-              setNomePessoa(e.target.value);
-              const residente = residentes.find(r => r.name === e.target.value);
-              setPessoa(residente ? residente.id : '');
-            }}
+            value={pessoa}
+            onChange={e => setPessoa(e.target.value)}
             required
           >
             <option value="">Selecione o residente</option>
             {residentes.map(r => (
-              <option key={r.id} value={r.name}>{r.name}</option>
+              <option key={r.id} value={r.id}>{r.name}</option>
             ))}
           </select>
           <select
@@ -1054,6 +1033,7 @@ export default function Pagamentos() {
               <option key={e.id} value={e.adress}>{e.adress}</option>
             ))}
           </select>
+          <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Observações" value={obs} onChange={e => setObs(e.target.value)} />
           <button type="submit" className="rounded bg-pink-600 px-4 py-2 text-white hover:bg-pink-700 cursor-pointer text-base sm:text-lg">Salvar</button>
         </form>
         <ToastContainer position="top-right" autoClose={2000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
