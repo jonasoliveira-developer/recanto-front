@@ -12,6 +12,13 @@ import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 
 export default function Pagamentos() {
+            // Estado para contador de criação em lote
+            const [criadosLote, setCriadosLote] = useState(0);
+          // Estado para itens restantes na exclusão em lote
+          const [itensRestantes, setItensRestantes] = useState(0);
+        // Modal para deletar pagamentos em lote
+        const [modalDeletarGrupoAberto, setModalDeletarGrupoAberto] = useState(false);
+        const [carregandoDeletarGrupo, setCarregandoDeletarGrupo] = useState(false);
       // Utilitário para exibir datas no formato dd/MM/yyyy
       function formatarDataParaTela(data: string | undefined) {
         if (!data) return "";
@@ -658,7 +665,7 @@ export default function Pagamentos() {
                     <div className="text-center text-gray-500">Nenhum pagamento encontrado.</div>
                   )}
                   {pagamentosFiltrados.map((recibo, idx) => (
-                    <div key={recibo.id || idx} className="border rounded p-4 bg-white text-sm sm:text-base md:text-base leading-relaxed space-y-2 w-full mx-0">
+                    <div key={recibo.id ? `recibo-${recibo.id}` : `recibo-idx-${idx}`} className="border rounded p-4 bg-white text-sm sm:text-base md:text-base leading-relaxed space-y-2 w-full mx-0">
                       <div className="font-bold text-pink-900 mb-3 text-base sm:text-base md:text-lg">Recibo #{recibo.id}</div>
                       <div className="break-words"><b className="text-black">TÍTULO:</b> <span className="text-black">{recibo.title || '-'}</span></div>
                       <div className="break-words"><b className="text-black">VALOR:</b> <span className="text-black">{recibo.cash !== undefined ? 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</span></div>
@@ -684,12 +691,56 @@ export default function Pagamentos() {
           >
             Criar para todos
           </button>
+          <button
+            className="rounded-lg bg-red-600 px-6 py-2 text-white font-bold shadow hover:bg-red-700 border border-red-800 transition-colors"
+            onClick={() => setModalDeletarGrupoAberto(true)}
+          >
+            Deletar em lote
+          </button>
         </div>
+      {/* Modal de deletar pagamentos em lote */}
+      <Modal aberto={modalDeletarGrupoAberto} aoFechar={() => setModalDeletarGrupoAberto(false)} titulo="Deletar pagamentos em lote">
+        <div className="flex flex-col gap-4 p-4">
+          <p className="text-lg text-red-700 font-bold">
+            Tem certeza que deseja deletar <b>{pagamentosFiltrados.length}</b> pagamento(s) listado(s)?
+          </p>
+          {carregandoDeletarGrupo && (
+            <p className="text-base text-red-800 font-semibold">Faltam <b>{itensRestantes}</b> para deletar...</p>
+          )}
+          <button
+            className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 cursor-pointer text-base sm:text-lg"
+            disabled={carregandoDeletarGrupo}
+            onClick={async () => {
+              setCarregandoDeletarGrupo(true);
+              let total = 0, erros = 0;
+              let itens = pagamentosFiltrados.length;
+              setItensRestantes(itens);
+              for (const pagamento of pagamentosFiltrados) {
+                try {
+                  await removerPagamento(pagamento.id, token || "");
+                  total++;
+                } catch (err) {
+                  erros++;
+                }
+                itens--;
+                setItensRestantes(itens);
+              }
+              toast.success(`Pagamentos em lote deletados! Removidos: ${total}, Erros: ${erros}`);
+              setModalDeletarGrupoAberto(false);
+              carregarPagamentos();
+              setCarregandoDeletarGrupo(false);
+            }}
+          >
+            {carregandoDeletarGrupo ? 'Deletando...' : 'Confirmar exclusão em lote'}
+          </button>
+        </div>
+      </Modal>
               {/* Modal de criar pagamentos em lote */}
               <Modal aberto={modalGrupoAberto} aoFechar={() => setModalGrupoAberto(false)} titulo="Criar pagamento para todos os residentes">
                 <form className="flex flex-col gap-3" onSubmit={async (e) => {
                   e.preventDefault();
                   setCarregandoGrupo(true);
+                  setCriadosLote(0);
                   try {
                     let total = 0, erros = 0;
                     for (const residente of residentes) {
@@ -706,6 +757,7 @@ export default function Pagamentos() {
                       try {
                         await criarPagamento(payload, token || "");
                         total++;
+                        setCriadosLote(prev => prev + 1);
                       } catch (err) {
                         erros++;
                       }
@@ -719,6 +771,9 @@ export default function Pagamentos() {
                     setCarregandoGrupo(false);
                   }
                 }}>
+                                  {carregandoGrupo && (
+                                    <p className="text-base text-green-800 font-semibold mb-2">Criados: <b>{criadosLote}</b> de <b>{residentes.length}</b></p>
+                                  )}
                   <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Título" value={titulo} onChange={e => setTitulo(e.target.value)} required />
                   <select
                     className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
