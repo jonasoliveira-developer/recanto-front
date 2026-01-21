@@ -381,7 +381,7 @@ export default function Pagamentos() {
           const payload = {
             title: titulo,
             situation: situacao,
-            modePayment: modoPagamento,
+            modePayment: modoPagamento !== '' ? parseInt(modoPagamento, 10) : null,
             cash: valor,
             person: pessoa,
             adress: endereco,
@@ -407,6 +407,11 @@ export default function Pagamentos() {
         setModalDREAberto(true);
       }
         // ...existing code...
+        function returnModePayment(mode: any): string {
+          if (mode === 0 || mode === '0') return 'DINHEIRO';
+          if (mode === 1 || mode === '1') return 'CARTÃO';
+          return 'PIX';
+        }
 
 
       function gerarPdfRecibosLote() {
@@ -669,7 +674,7 @@ export default function Pagamentos() {
                       <div className="font-bold text-pink-900 mb-3 text-base sm:text-base md:text-lg">Recibo #{recibo.id}</div>
                       <div className="break-words"><b className="text-black">TÍTULO:</b> <span className="text-black">{recibo.title || '-'}</span></div>
                       <div className="break-words"><b className="text-black">VALOR:</b> <span className="text-black">{recibo.cash !== undefined ? 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '-'}</span></div>
-                      <div className="break-words"><b className="text-black">TIPO PAGAMENTO:</b> <span className="text-black">{modePaymentReturn(recibo.modePayment)}</span></div>
+                      <div className="break-words"><b className="text-black">TIPO PAGAMENTO:</b> <span className="text-black">{returnModePayment(recibo.modePayment)}</span></div>
                       <div className="break-words"><b className="text-black">DATA ABERTURA:</b> <span className="text-black">{formatarDataParaTela(recibo.datePayment)}</span></div>
                       <div className="break-words"><b className="text-black">DATA FECHAMENTO:</b> <span className="text-black">{formatarDataParaTela(recibo.finishPayment)}</span></div>
                       <div className="break-words"><b className="text-black">SITUAÇÃO:</b> <span className="text-black">{situationReturn(recibo.situation)}</span></div>
@@ -748,7 +753,7 @@ export default function Pagamentos() {
                       const payload = {
                         title: titulo,
                         situation: situacao,
-                        modePayment: modoPagamento,
+                        modePayment: modoPagamento !== '' ? parseInt(modoPagamento, 10) : null,
                         cash: valor,
                         person: residente.id,
                         adress: enderecoResidente ? enderecoResidente.adress : '',
@@ -794,8 +799,8 @@ export default function Pagamentos() {
                   >
                     <option value="">Selecione o método de pagamento</option>
                     <option value="0">Dinheiro</option>
-                    <option value="1">Pix</option>
-                    <option value="2">Cartão</option>
+                    <option value="1">Cartão</option>
+                    <option value="2">Pix</option>
                   </select>
                   <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Valor" type="number" value={valor} onChange={e => setValor(e.target.value)} required />
                   <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Observações" value={obs} onChange={e => setObs(e.target.value)} />
@@ -938,7 +943,7 @@ export default function Pagamentos() {
             {/* Modal de Recibo individual - global, fora do .map() */}
             <Modal aberto={reciboAberto} aoFechar={() => setReciboAberto(false)} titulo="Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã - Recibo">
               {pagamentoRecibo && <>
-                {(() => { console.log('Recibo selecionado:', pagamentoRecibo); return null; })()}
+                {console.log('Recibo individual clicado:', pagamentoRecibo)}
                 <div className="flex flex-col gap-2 text-base">
                   <button
                     className="self-end mb-2 px-3 py-1 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 print:hidden"
@@ -969,7 +974,7 @@ export default function Pagamentos() {
                       addField('TÍTULO', pagamentoRecibo.title || '-');
                       if (pagamentoRecibo.dueDate) addField('VENCIMENTO', formatarDataBarra(pagamentoRecibo.dueDate));
                       addField('VALOR', 'R$ ' + Number(pagamentoRecibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-                      addField('TIPO PAGAMENTO', modePaymentReturn(pagamentoRecibo.modePayment));
+                      addField('TIPO PAGAMENTO', returnModePayment(pagamentoRecibo.modePayment));
                       addField('DATA ABERTURA', formatarDataBarra(pagamentoRecibo.datePayment));
                       addField('SITUAÇÃO', situationReturn(pagamentoRecibo.situation));
                       addField('DATA FECHAMENTO', formatarDataBarra(pagamentoRecibo.finishPayment));
