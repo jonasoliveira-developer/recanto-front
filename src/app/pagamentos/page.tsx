@@ -690,55 +690,26 @@ export default function Pagamentos() {
                 <form className="flex flex-col gap-3" onSubmit={async (e) => {
                   e.preventDefault();
                   setCarregandoGrupo(true);
-                  console.log('Iniciando criação em lote de pagamentos');
                   try {
-                    // Garantir formato dd-MM-yyyy para o backend Java
-                    function formatarParaDDMMYYYY(data: string) {
-                      if (!data) return '';
-                      if (data.includes('-')) {
-                        const [ano, mes, dia] = data.split('-');
-                        return `${dia.padStart(2, '0')}-${mes.padStart(2, '0')}-${ano}`;
-                      }
-                      if (data.includes('/')) {
-                        const [dia, mes, ano] = data.split('/');
-                        return `${dia.padStart(2, '0')}-${mes.padStart(2, '0')}-${ano}`;
-                      }
-                      return data;
-                    }
-                    const dataFormatada = formatarParaDDMMYYYY(dataPagamento);
-                    console.log('Data formatada:', dataFormatada);
                     let total = 0, erros = 0;
-                    console.log('Residentes:', residentes);
-                    console.log('Endereços:', enderecos);
                     for (const residente of residentes) {
-                      console.log('Processando residente:', residente);
-                      // Buscar endereço do residente
                       const enderecoResidente = enderecos.find(e => e.person === residente.id);
-                      console.log('Endereço encontrado:', enderecoResidente);
-                      // Cria um novo objeto de pagamento para cada residente
                       const payload = {
                         title: titulo,
-                        datePayment: dataFormatada,
-                        situation: situacao !== '' ? parseInt(situacao, 10) : null,
-                        modePayment: modoPagamento !== '' ? parseInt(modoPagamento, 10) : null,
+                        situation: situacao,
+                        modePayment: modoPagamento,
                         cash: valor,
-                        discount: desconto,
-                        obs,
                         person: residente.id,
                         adress: enderecoResidente ? enderecoResidente.adress : '',
-                        finishPayment: null
+                        obs: obs
                       };
-                      console.log('Payload para criação:', payload);
                       try {
-                        const resp = await criarPagamento(payload, token || "");
-                        console.log('Pagamento criado:', resp);
+                        await criarPagamento(payload, token || "");
                         total++;
                       } catch (err) {
-                        console.error('Erro ao criar pagamento:', err);
                         erros++;
                       }
                     }
-                    console.log('Final do processamento em lote. Total criados:', total, 'Erros:', erros);
                     toast.success(`Pagamentos em lote finalizados! Criados: ${total}, Erros: ${erros}`);
                     setModalGrupoAberto(false);
                     carregarPagamentos();
@@ -749,7 +720,6 @@ export default function Pagamentos() {
                   }
                 }}>
                   <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Título" value={titulo} onChange={e => setTitulo(e.target.value)} required />
-                  <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Data do pagamento" type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} required />
                   <select
                     className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
                     value={situacao}
@@ -773,7 +743,6 @@ export default function Pagamentos() {
                     <option value="2">Cartão</option>
                   </select>
                   <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Valor" type="number" value={valor} onChange={e => setValor(e.target.value)} required />
-                  <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Desconto" type="number" value={desconto} onChange={e => setDesconto(e.target.value)} />
                   <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Observações" value={obs} onChange={e => setObs(e.target.value)} />
                   <button type="submit" className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 cursor-pointer text-base sm:text-lg" disabled={carregandoGrupo}>
                     {carregandoGrupo ? 'Criando...' : 'Criar para todos'}
