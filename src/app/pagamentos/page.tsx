@@ -801,7 +801,7 @@ export default function Pagamentos() {
                   }
                 }}>
                                   {carregandoGrupo && (
-                                    <p className="text-base text-green-800 font-semibold mb-2">Criados: <b>{criadosLote}</b> de <b>{residentes.length}</b></p>
+                                    <p className="text-base text-green-800 font-semibold mb-2">Criados: <b>{criadosLote}</b> de <b>{enderecos.length}</b></p>
                                   )}
                   <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Título" value={titulo} onChange={e => setTitulo(e.target.value)} required />
                   <select
