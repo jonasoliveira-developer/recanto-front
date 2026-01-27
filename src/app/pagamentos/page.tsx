@@ -749,22 +749,46 @@ export default function Pagamentos() {
                   try {
                     let total = 0, erros = 0;
                     for (const residente of residentes) {
-                      const enderecoResidente = enderecos.find(e => e.person === residente.id);
-                      const payload = {
-                        title: titulo,
-                        situation: situacao,
-                        modePayment: modoPagamento !== '' ? parseInt(modoPagamento, 10) : null,
-                        cash: valor,
-                        person: residente.id,
-                        adress: enderecoResidente ? enderecoResidente.adress : '',
-                        obs: obs
-                      };
-                      try {
-                        await criarPagamento(payload, token || "");
-                        total++;
-                        setCriadosLote(prev => prev + 1);
-                      } catch (err) {
-                        erros++;
+                      // Pega todos os endereços do residente
+                      const enderecosDoResidente = enderecos.filter(e => e.person === residente.id);
+                      if (enderecosDoResidente.length === 0) {
+                        // Se não tem endereço, cria um recibo vazio (opcional)
+                        const payload = {
+                          title: titulo,
+                          situation: situacao,
+                          modePayment: modoPagamento !== '' ? parseInt(modoPagamento, 10) : null,
+                          cash: valor,
+                          person: residente.id,
+                          adress: '',
+                          obs: obs
+                        };
+                        try {
+                          await criarPagamento(payload, token || "");
+                          total++;
+                          setCriadosLote(prev => prev + 1);
+                        } catch (err) {
+                          erros++;
+                        }
+                      } else {
+                        // Cria um recibo para cada endereço do residente
+                        for (const enderecoResidente of enderecosDoResidente) {
+                          const payload = {
+                            title: titulo,
+                            situation: situacao,
+                            modePayment: modoPagamento !== '' ? parseInt(modoPagamento, 10) : null,
+                            cash: valor,
+                            person: residente.id,
+                            adress: enderecoResidente.adress,
+                            obs: obs
+                          };
+                          try {
+                            await criarPagamento(payload, token || "");
+                            total++;
+                            setCriadosLote(prev => prev + 1);
+                          } catch (err) {
+                            erros++;
+                          }
+                        }
                       }
                     }
                     toast.success(`Pagamentos em lote finalizados! Criados: ${total}, Erros: ${erros}`);
