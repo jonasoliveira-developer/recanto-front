@@ -415,7 +415,7 @@ export default function Pagamentos() {
 
 
       function gerarPdfRecibosLote() {
-        if (!pagamentos.length) {
+        if (!pagamentosFiltrados.length) {
           toast.info("Nenhum pagamento para recibo.");
           return;
         }
@@ -426,7 +426,7 @@ export default function Pagamentos() {
         const localPosX = 10;
         const marginY = 10;
         const recibosPorFolha = 3;
-        pagamentos.forEach((recibo, idx) => {
+        pagamentosFiltrados.forEach((recibo, idx) => {
           const posY = marginY + (idx % recibosPorFolha) * (reciboHeight + espacamento);
           // Nova página a cada 3 recibos
           if (idx > 0 && idx % recibosPorFolha === 0) doc.addPage();
