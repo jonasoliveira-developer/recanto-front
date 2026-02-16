@@ -10,6 +10,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { useAuth, UserRole, hasRole } from "../../context/AuthContext";
 import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
+import { CustomSelect } from "../../components/CustomSelect";
 
 export default function Pagamentos() {
             // Estado para contador de criação em lote
@@ -73,6 +74,9 @@ export default function Pagamentos() {
   // Estados para selects dinâmicos
   const [residentes, setResidentes] = useState<any[]>([]);
   const [enderecos, setEnderecos] = useState<any[]>([]);
+  // Arrays formatados para CustomSelect
+  const residentesOptions = residentes.map(r => ({ id: r.id, label: r.name }));
+  const enderecosOptions = enderecos.map(e => ({ id: e.id, label: e.adress }));
 
   // Carregar residentes e endereços ao abrir modal de pagamentos em lote
   useEffect(() => {
@@ -823,8 +827,8 @@ export default function Pagamentos() {
                   >
                     <option value="">Selecione o método de pagamento</option>
                     <option value="0">Dinheiro</option>
-                    <option value="1">Cartão</option>
-                    <option value="2">Pix</option>
+                    <option value="1">Pix</option>
+                    <option value="2">Cartão</option>
                   </select>
                   <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Valor" type="number" value={valor} onChange={e => setValor(e.target.value)} required />
                   <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Observações" value={obs} onChange={e => setObs(e.target.value)} />
@@ -1064,28 +1068,18 @@ export default function Pagamentos() {
             <option value="2">Cartão</option>
           </select>
           <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Valor" type="number" value={valor} onChange={e => setValor(e.target.value)} required />
-          <select
-            className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
+          <CustomSelect
+            options={residentesOptions}
             value={pessoa}
-            onChange={e => setPessoa(e.target.value)}
-            required
-          >
-            <option value="">Selecione o residente</option>
-            {residentes.map(r => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
-          <select
-            className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white"
+            onChange={setPessoa}
+            placeholder="Selecione o residente"
+          />
+          <CustomSelect
+            options={enderecosOptions}
             value={endereco}
-            onChange={e => setEndereco(e.target.value)}
-            required
-          >
-            <option value="">Selecione o endereço</option>
-            {enderecos.map(e => (
-              <option key={e.id} value={e.adress}>{e.adress}</option>
-            ))}
-          </select>
+            onChange={setEndereco}
+            placeholder="Selecione o endereço"
+          />
           <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white placeholder:text-gray-800" placeholder="Observações" value={obs} onChange={e => setObs(e.target.value)} />
           <button type="submit" className="rounded bg-pink-600 px-4 py-2 text-white hover:bg-pink-700 cursor-pointer text-base sm:text-lg">Salvar</button>
         </form>

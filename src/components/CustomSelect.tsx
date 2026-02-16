@@ -26,7 +26,7 @@ export function CustomSelect({ options, value, onChange, placeholder }: CustomSe
     opt.label.toLowerCase().includes(search.toLowerCase())
   );
 
-  const selectedLabel = options.find(opt => opt.id === value)?.label || "";
+  const selectedLabel = options.find(opt => String(opt.id) === String(value))?.label || "";
 
   return (
     <div ref={ref} className="relative w-full">
@@ -56,8 +56,8 @@ export function CustomSelect({ options, value, onChange, placeholder }: CustomSe
             )}
             {filtered.map(opt => (
               <li
-                key={opt.id}
-                className={`px-3 py-2 cursor-pointer hover:bg-[#DDA329] hover:text-white ${value === opt.id ? "bg-[#DDA329] text-white" : ""}`}
+                key={String(opt.id)}
+                className={`px-3 py-2 cursor-pointer hover:bg-[#DDA329] hover:text-white ${String(value) === String(opt.id) ? "bg-[#DDA329] text-white" : ""}`}
                 onClick={() => { onChange(opt.id.toString()); setOpen(false); setSearch(""); }}
               >
                 {opt.label}
