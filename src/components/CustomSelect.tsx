@@ -44,7 +44,7 @@ export function CustomSelect({ options, value, onChange, placeholder }: CustomSe
       {open && (
         <div className="absolute left-0 right-0 mt-1 bg-white border rounded shadow-lg z-50 max-h-60 overflow-auto">
           <input
-            className="w-full px-3 py-2 border-b outline-none text-base bg-white placeholder:text-gray-800"
+            className="w-1/2 m-2 px-3 py-2 border-2 border-green-500 rounded-lg outline-none text-base bg-white text-gray-700 placeholder:text-gray-400 focus:border-green-600 transition-colors duration-200 shadow-sm"
             placeholder="Buscar..."
             value={search}
             onChange={e => setSearch(e.target.value)}
