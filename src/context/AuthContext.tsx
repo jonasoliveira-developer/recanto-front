@@ -19,13 +19,14 @@ export function getRoleLabel(role: number | string) {
   return "Desconhecido";
 }
 
-export function hasRole(usuario: any, role: UserRole) {
+export function hasRole(usuario: { roles?: string | string[] }, role: UserRole) {
   if (!usuario || !usuario.roles) return false;
+  const roleStr = String(role);
   if (Array.isArray(usuario.roles)) {
-    return usuario.roles.includes(role) || usuario.roles.includes(String(role));
+    return usuario.roles.map(String).includes(roleStr);
   }
   // roles pode ser string separada por vírgula
-  return String(usuario.roles).split(",").includes(String(role));
+  return String(usuario.roles).split(",").includes(roleStr);
 }
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -35,7 +36,9 @@ import { autenticarUsuario } from "../services/authApi";
 interface Usuario {
   email: string;
   perfil?: string;
-  [chave: string]: any;
+  id?: string | number;
+  roles?: string | string[];
+  // Adicione outros campos conforme necessário
 }
 
 interface AuthContextProps {
@@ -63,13 +66,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userSalvo = localStorage.getItem("user");
     const rolesSalvo = localStorage.getItem("roles");
     if (tokenSalvo) {
-      definirToken(tokenSalvo);
-      // Monta objeto usuário a partir dos dados salvos
-      if (userSalvo) {
-        definirUsuario({ email: userSalvo, id: idSalvo, roles: rolesSalvo });
-      } else {
-        definirUsuario(null);
-      }
+      // Use um microtask para evitar setState direto no efeito
+      Promise.resolve().then(() => {
+        definirToken(tokenSalvo);
+        if (userSalvo) {
+          definirUsuario({ email: userSalvo, id: idSalvo ?? undefined, roles: rolesSalvo ?? undefined });
+        } else {
+          definirUsuario(null);
+        }
+      });
     }
   }, []);
 
@@ -81,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const user = localStorage.getItem("user");
     const roles = localStorage.getItem("roles");
     if (user) {
-      definirUsuario({ email: user, id, roles });
+      definirUsuario({ email: user, id: id ?? undefined, roles: roles ?? undefined });
     } else {
       definirUsuario(null);
     }

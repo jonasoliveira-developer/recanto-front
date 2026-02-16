@@ -14,14 +14,16 @@ export async function buscarAvisoPorId(id: number, token: string) {
   return resposta.data;
 }
 
-export async function criarAviso(dados: any, token: string) {
+
+export async function criarAviso(dados: Record<string, unknown>, token: string) {
   const resposta = await api.post("/annoucements", dados, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return resposta.data;
 }
 
-export async function atualizarAviso(id: number, dados: any, token: string) {
+
+export async function atualizarAviso(id: number, dados: Record<string, unknown>, token: string) {
   const resposta = await api.put(`/annoucements/${id}`, dados, {
     headers: { Authorization: `Bearer ${token}` }
   });

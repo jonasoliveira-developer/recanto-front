@@ -14,14 +14,16 @@ export async function buscarEnderecoPorId(id: number, token: string) {
   return resposta.data;
 }
 
-export async function criarEndereco(dados: any, token: string) {
+
+export async function criarEndereco(dados: Record<string, unknown>, token: string) {
   const resposta = await api.post("/adress", dados, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return resposta.data;
 }
 
-export async function atualizarEndereco(id: number, dados: any, token: string) {
+
+export async function atualizarEndereco(id: number, dados: Record<string, unknown>, token: string) {
   const resposta = await api.put(`/adress/${id}`, dados, {
     headers: { Authorization: `Bearer ${token}` }
   });
