@@ -42,15 +42,15 @@ export function CustomSelect({ options, value, onChange, placeholder }: CustomSe
         <span className={`ml-2 transition-transform ${open ? "rotate-180" : "rotate-0"}`}>▼</span>
       </div>
       {open && (
-        <div className="absolute left-0 right-0 mt-1 bg-white border rounded shadow-lg z-50 max-h-60 overflow-auto">
+        <div className="absolute left-0 right-0 mt-1 bg-white border rounded shadow-lg z-50 max-h-60 overflow-auto flex flex-col items-center px-4">
           <input
-            className="w-1/2 m-2 px-3 py-2 border-2 border-green-500 rounded-lg outline-none text-base bg-white text-gray-700 placeholder:text-gray-400 focus:border-green-600 transition-colors duration-200 shadow-sm"
+            className="w-full max-w-4xl my-2 px-3 py-2 border-2 border-green-500 rounded-lg outline-none text-base bg-white text-gray-700 placeholder:text-gray-400 focus:border-green-600 transition-colors duration-200 shadow-sm"
             placeholder="Buscar..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             autoFocus
           />
-          <ul className="max-h-48 overflow-auto">
+          <ul className="max-h-48 overflow-auto w-full">
             {filtered.length === 0 && (
               <li className="px-3 py-2 text-gray-500">Nenhum resultado</li>
             )}
