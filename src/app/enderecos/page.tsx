@@ -4,6 +4,7 @@ import { listarEnderecos } from "../../services/enderecosApi";
 import { useAuth, UserRole, hasRole } from "../../context/AuthContext";
 import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
+import { CustomSelect } from "../../components/CustomSelect";
 
 export default function Enderecos() {
   const [enderecos, definirEnderecos] = useState<any[]>([]);
@@ -13,6 +14,25 @@ export default function Enderecos() {
   const [paginaAtual, definirPaginaAtual] = useState(1);
   const itensPorPagina = 10;
   const { usuario, token } = useAuth();
+  // Estados para formulário
+  const [adress, setAdress] = useState("");
+  const [person, setPerson] = useState("");
+  const [personName, setPersonName] = useState("");
+  const [residentes, setResidentes] = useState<any[]>([]);
+  // Carregar residentes ao abrir modal
+  useEffect(() => {
+    if (modalAberto && token) {
+      (async () => {
+        try {
+          const listaResidentes = await (await import("../../services/recantoApi")).listarResidentes(token);
+          setResidentes(listaResidentes || []);
+        } catch {
+          setResidentes([]);
+        }
+      })();
+    }
+  }, [modalAberto, token]);
+  const residentesOptions = residentes.map(r => ({ id: r.id, label: r.name }));
 
   useEffect(() => {
     async function carregarEnderecos() {
@@ -102,10 +122,37 @@ export default function Enderecos() {
         )}
       </section>
       <Modal aberto={modalAberto} aoFechar={() => definirModalAberto(false)} titulo="Cadastrar endereço">
-        {/* Formulário de cadastro aqui */}
-        <form className="flex flex-col gap-3">
-          <input className="rounded border px-3 py-2" placeholder="Endereço" />
-          <input className="rounded border px-3 py-2" placeholder="Nome da pessoa" />
+        <form className="flex flex-col gap-3" onSubmit={async e => {
+          e.preventDefault();
+          if (!adress || !person) return;
+          // Busca nome do residente selecionado
+          const selected = residentes.find(r => String(r.id) === String(person));
+          setPersonName(selected?.name || "");
+          // Chamar API para salvar
+          try {
+            const { criarEndereco } = await import("../../services/enderecosApi");
+            await criarEndereco({ adress, person: person, personName: selected?.name || "" }, token || "");
+            definirModalAberto(false);
+            setAdress("");
+            setPerson("");
+            setPersonName("");
+            // Recarregar endereços
+            const dados = await listarEnderecos(token || "");
+            definirEnderecos(dados);
+          } catch {
+            // erro
+          }
+        }}>
+          <input className="rounded border px-3 py-2" placeholder="Endereço" value={adress} onChange={e => setAdress(e.target.value)} required />
+          <div>
+            <label className="block mb-1 text-sm text-gray-700">Selecione a pessoa</label>
+            <CustomSelect
+              options={residentesOptions}
+              value={person}
+              onChange={setPerson}
+              placeholder="Buscar pessoa..."
+            />
+          </div>
           <button type="submit" className="rounded bg-teal-600 px-4 py-2 text-white hover:bg-teal-700">Salvar</button>
         </form>
       </Modal>
