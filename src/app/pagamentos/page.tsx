@@ -74,6 +74,10 @@ export default function Pagamentos() {
   // Estados para selects dinâmicos
   const [residentes, setResidentes] = useState<any[]>([]);
   const [enderecos, setEnderecos] = useState<any[]>([]);
+  function resolverEnderecoPagamento(valorEndereco: string) {
+    const enderecoSelecionado = enderecos.find((item) => String(item.id) === String(valorEndereco));
+    return enderecoSelecionado?.adress || valorEndereco || "";
+  }
   // Arrays formatados para CustomSelect
   const residentesOptions = residentes.map(r => ({ id: r.id, label: r.name }));
   const enderecosOptions = enderecos.map(e => ({ id: e.id, label: e.adress }));
@@ -119,6 +123,16 @@ export default function Pagamentos() {
       fetchData();
     }
   }, [modalAberto, token]);
+
+  useEffect(() => {
+    if (!modalAberto || !endereco || !enderecos.length) return;
+    const enderecoJaEhId = enderecos.some((item) => String(item.id) === String(endereco));
+    if (enderecoJaEhId) return;
+    const enderecoCorrespondente = enderecos.find((item) => item.adress === endereco);
+    if (enderecoCorrespondente) {
+      setEndereco(String(enderecoCorrespondente.id));
+    }
+  }, [modalAberto, endereco, enderecos]);
             // Função para gerar PDF do DRE
             function gerarPdfDRE() {
               const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -388,7 +402,7 @@ export default function Pagamentos() {
             modePayment: modoPagamento !== '' ? parseInt(modoPagamento, 10) : null,
             cash: valor,
             person: pessoa,
-            adress: endereco,
+            adress: resolverEnderecoPagamento(endereco),
             obs: obs
           };
           if (editando) {
@@ -430,6 +444,7 @@ export default function Pagamentos() {
         const localPosX = 10;
         const marginY = 10;
         const recibosPorFolha = 3;
+        
         pagamentosFiltrados.forEach((recibo, idx) => {
           const posY = marginY + (idx % recibosPorFolha) * (reciboHeight + espacamento);
           // Nova página a cada 3 recibos
