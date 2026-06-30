@@ -36,3 +36,7 @@ export async function removerEndereco(id: number, token: string) {
   });
   return resposta.data;
 }
+
+export async function deletarEndereco(id: number, token: string) {
+  return removerEndereco(id, token);
+}

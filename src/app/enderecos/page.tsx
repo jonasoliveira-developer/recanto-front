@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { atualizarEndereco, buscarEnderecoPorId, criarEndereco, listarEnderecos } from "../../services/enderecosApi";
+import { atualizarEndereco, buscarEnderecoPorId, criarEndereco, deletarEndereco, listarEnderecos } from "../../services/enderecosApi";
 import { useAuth, UserRole } from "../../context/AuthContext";
 import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
@@ -22,8 +22,13 @@ export default function Enderecos() {
   const [personName, setPersonName] = useState("");
   const [editando, definirEditando] = useState<any | null>(null);
   const [residentes, setResidentes] = useState<any[]>([]);
+  const [modalConfirmacaoAberto, definirModalConfirmacaoAberto] = useState(false);
+  const [enderecoDeletando, definirEnderecoDeletando] = useState<number | null>(null);
+  const [deletando, definirDeletando] = useState(false);
+  const [mensagemErrorDelete, definirMensagemErrorDelete] = useState("");
 
   const podeEditarEndereco = temPermissaoEfetiva(UserRole.ADMIN) || temPermissaoEfetiva(UserRole.EMPLOYEE);
+  const podeDeletarEndereco = temPermissaoEfetiva(UserRole.ADMIN) || temPermissaoEfetiva(UserRole.EMPLOYEE);
 
   function limparFormulario() {
     setAdress("");
@@ -36,6 +41,18 @@ export default function Enderecos() {
     definirModalAberto(false);
     definirEditando(null);
     limparFormulario();
+  }
+
+  function abrirConfirmacaoDeletar(id: number) {
+    definirEnderecoDeletando(id);
+    definirMensagemErrorDelete("");
+    definirModalConfirmacaoAberto(true);
+  }
+
+  function fecharConfirmacaoDeletar() {
+    definirModalConfirmacaoAberto(false);
+    definirEnderecoDeletando(null);
+    definirMensagemErrorDelete("");
   }
 
   function abrirModalNovo() {
@@ -137,6 +154,58 @@ export default function Enderecos() {
       definirSalvando(false);
     }
   }
+
+  async function executarDeletar() {
+    if (!token || enderecoDeletando === null) {
+      fecharConfirmacaoDeletar();
+      return;
+    }
+
+    definirMensagemErrorDelete("");
+    definirDeletando(true);
+
+    try {
+      await deletarEndereco(enderecoDeletando, token);
+      // Sucesso: remover do estado local
+      definirEnderecos((listaAtual) =>
+        listaAtual.filter((item) => item.id !== enderecoDeletando)
+      );
+      fecharConfirmacaoDeletar();
+      alert("Endereço excluído com sucesso.");
+    } catch (erro: any) {
+      const status = erro?.response?.status;
+
+      if (status === 401) {
+        logout();
+        fecharConfirmacaoDeletar();
+        return;
+      }
+
+      if (status === 403) {
+        definirMensagemErrorDelete(
+          erro?.response?.data?.message || "Você não tem permissão para excluir endereços."
+        );
+        return;
+      }
+
+      if (status === 404) {
+        definirMensagemErrorDelete("Endereço não encontrado.");
+        return;
+      }
+
+      if (status === 400) {
+        definirMensagemErrorDelete(
+          erro?.response?.data?.message || "Não é possível excluir este endereço pois está vinculado a registros."
+        );
+        return;
+      }
+
+      definirMensagemErrorDelete("Erro ao excluir endereço. Tente novamente mais tarde.");
+    } finally {
+      definirDeletando(false);
+    }
+  }
+
   // Carregar residentes ao abrir modal
   useEffect(() => {
     if (modalAberto && token) {
@@ -228,12 +297,22 @@ export default function Enderecos() {
                   <h2 className="text-lg font-semibold text-teal-800">{endereco.adress}</h2>
                   <p className="text-sm text-gray-600">Pessoa: {endereco.personName}</p>
                   {podeEditarEndereco ? (
-                    <button
-                      className="mt-2 rounded bg-teal-500 px-3 py-1 text-white hover:bg-teal-700"
-                      onClick={() => abrirModalEditar(endereco)}
-                    >
-                      Editar
-                    </button>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        className="rounded bg-teal-500 px-3 py-1 text-white hover:bg-teal-700"
+                        onClick={() => abrirModalEditar(endereco)}
+                      >
+                        Editar
+                      </button>
+                      {podeDeletarEndereco ? (
+                        <button
+                          className="rounded bg-red-500 px-3 py-1 text-white hover:bg-red-700"
+                          onClick={() => abrirConfirmacaoDeletar(endereco.id)}
+                        >
+                          Excluir
+                        </button>
+                      ) : null}
+                    </div>
                   ) : null}
                 </li>
               ))}
@@ -272,6 +351,37 @@ export default function Enderecos() {
           </button>
         </form>
       </Modal>
+      {modalConfirmacaoAberto ? (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="rounded-lg bg-white p-6 shadow-lg max-w-sm w-full mx-4">
+            <h2 className="mb-4 text-2xl font-bold text-red-600">Confirmar exclusão</h2>
+            <p className="mb-4 text-gray-700">
+              Deseja realmente excluir este endereço? Esta ação não pode ser desfeita.
+            </p>
+            {mensagemErrorDelete ? (
+              <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 mb-4">
+                {mensagemErrorDelete}
+              </p>
+            ) : null}
+            <div className="flex gap-3 justify-end">
+              <button
+                className="rounded bg-gray-300 px-4 py-2 text-gray-800 hover:bg-gray-400"
+                onClick={fecharConfirmacaoDeletar}
+                disabled={deletando}
+              >
+                Cancelar
+              </button>
+              <button
+                className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={executarDeletar}
+                disabled={deletando}
+              >
+                {deletando ? "Excluindo..." : "Excluir"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
