@@ -7,10 +7,7 @@ export function Header() {
   const {
     usuario,
     logout,
-    estaAutenticado,
-    podeGerenciarPermissoesLocais,
-    modoSuperacessoLocalAtivo,
-    alternarSuperacessoLocal
+    estaAutenticado
   } = useAuth();
   const [menuAberto, setMenuAberto] = useState(false);
   const pathname = usePathname();
@@ -47,15 +44,6 @@ export function Header() {
           {estaAutenticado && usuario ? (
             <>
               <span className="text-lg text-[#69553B] font-extrabold mb-1">{usuario.email}</span>
-              {podeGerenciarPermissoesLocais ? (
-                <button
-                  onClick={alternarSuperacessoLocal}
-                  className={`mb-2 rounded px-3 py-1 text-xs font-bold transition-colors ${modoSuperacessoLocalAtivo ? "bg-green-700 text-white hover:bg-green-800" : "bg-gray-700 text-white hover:bg-gray-800"}`}
-                  title="Disponivel somente em ambiente local"
-                >
-                  {modoSuperacessoLocalAtivo ? "SUPERACESSO LOCAL: ON" : "SUPERACESSO LOCAL: OFF"}
-                </button>
-              ) : null}
               <button onClick={logout} className="bg-[#69553B] text-[#FFF] px-8 py-1 rounded hover:bg-[#F5E9DD] hover:text-[#4B2E09] transition-colors">Sair</button>
             </>
           ) : (
@@ -108,15 +96,6 @@ export function Header() {
             <div className="mt-4 border-t border-[#C3B4A8] pt-4 flex flex-col items-start gap-2">
               {estaAutenticado && usuario ? (
                 <>
-                  {podeGerenciarPermissoesLocais ? (
-                    <button
-                      onClick={alternarSuperacessoLocal}
-                      className={`rounded px-3 py-1 text-xs font-bold transition-colors ${modoSuperacessoLocalAtivo ? "bg-green-700 text-white hover:bg-green-800" : "bg-gray-700 text-white hover:bg-gray-800"}`}
-                      title="Disponivel somente em ambiente local"
-                    >
-                      {modoSuperacessoLocalAtivo ? "SUPERACESSO LOCAL: ON" : "SUPERACESSO LOCAL: OFF"}
-                    </button>
-                  ) : null}
                   <button onClick={() => { logout(); setMenuAberto(false); }} className="bg-[#69553B] text-[#FFF] px-8 py-1 rounded hover:bg-[#C3B4A8] hover:text-[#69553B] transition-colors">Sair</button>
                 </>
               ) : (
