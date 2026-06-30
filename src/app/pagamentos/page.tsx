@@ -569,11 +569,11 @@ export default function Pagamentos() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFF] p-4 font-sans">
+    <div className="page-shell">
       <header className="mb-6">
         {/* Removido bloco de associação em duas linhas */}
-        <h1 className="text-2xl font-extrabold text-[#69553B] mb-2 tracking-wider">Pagamentos</h1>
-        <section className="rounded-lg bg-pink-100 p-4 mb-4 border border-[#C3B4A8]">
+        <h1 className="page-title mb-2">Pagamentos</h1>
+        <section className="surface-card p-4 mb-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             {/* Filtros de data inicial/final */}
             <div className="flex flex-col gap-2 w-full order-1 md:order-0">
@@ -581,10 +581,10 @@ export default function Pagamentos() {
                 <div className="flex flex-col flex-1 w-full">
                   <label className="text-xs text-gray-600 mb-1">Data Inicial</label>
                   <div className="flex flex-row gap-2 w-full">
-                    <select value={mesInicial} onChange={e => setMesInicial(e.target.value)} className="rounded border px-4 py-3 text-lg w-1/2 bg-white">
+                    <select value={mesInicial} onChange={e => setMesInicial(e.target.value)} className="input-base text-lg w-1/2 bg-white">
                       {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                     </select>
-                    <select value={anoInicial} onChange={e => setAnoInicial(e.target.value)} className="rounded border px-4 py-3 text-lg w-1/2 bg-white">
+                    <select value={anoInicial} onChange={e => setAnoInicial(e.target.value)} className="input-base text-lg w-1/2 bg-white">
                       {anos.map(a => <option key={a} value={a}>{a}</option>)}
                     </select>
                   </div>
@@ -593,30 +593,30 @@ export default function Pagamentos() {
                 <div className="flex flex-col flex-1 w-full">
                   <label className="text-xs text-gray-600 mb-1">Data Final</label>
                   <div className="flex flex-row gap-2 w-full">
-                    <select value={mesFinal} onChange={e => setMesFinal(e.target.value)} className="rounded border px-4 py-3 text-lg w-1/2 bg-white">
+                    <select value={mesFinal} onChange={e => setMesFinal(e.target.value)} className="input-base text-lg w-1/2 bg-white">
                       {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                     </select>
-                    <select value={anoFinal} onChange={e => setAnoFinal(e.target.value)} className="rounded border px-4 py-3 text-lg w-1/2 bg-white">
+                    <select value={anoFinal} onChange={e => setAnoFinal(e.target.value)} className="input-base text-lg w-1/2 bg-white">
                       {anos.map(a => <option key={a} value={a}>{a}</option>)}
                     </select>
                   </div>
                 </div>
                 <div className="flex flex-row gap-2 flex-wrap items-end">
                   <button
-                    className="rounded-lg bg-[#DDA329] px-6 py-2 text-[#69553B] font-bold shadow hover:bg-[#C3B4A8] hover:text-[#69553B] border border-[#69553B] cursor-pointer w-full sm:w-auto mb-2 sm:mb-0 transition-colors"
+                    className="btn btn-primary px-6 py-2 w-full sm:w-auto mb-2 sm:mb-0"
                     onClick={abrirModalNovo}
                   >
                     Novo
                   </button>
                   <button
-                    className="rounded-lg bg-[#69553B] px-4 py-2 text-[#FFF] font-bold shadow hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer flex items-center gap-2 w-full sm:w-auto mb-2 sm:mb-0 transition-colors"
+                    className="btn btn-secondary px-4 py-2 flex items-center gap-2 w-full sm:w-auto mb-2 sm:mb-0"
                     onClick={() => setModalRecibosAberto(true)}
                     title="Gerar recibos em lote"
                   >
                     <FaRegFileAlt /> Recibos
                   </button>
                   <button
-                    className="rounded-lg bg-[#C3B4A8] px-6 py-2 text-[#69553B] font-bold shadow hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer flex items-center gap-2 w-full sm:w-auto transition-colors"
+                    className="btn btn-secondary px-6 py-2 flex items-center gap-2 w-full sm:w-auto"
                     onClick={gerarPdfRelatorioDRE}
                     title="Relatório DRE"
                   >

@@ -101,34 +101,34 @@ export default function ResidentsPage() {
 	}
 
 	return (
-		<div className="min-h-screen bg-white p-4 font-sans">
-			<header className="mb-6">
-				<h1 className="text-2xl font-extrabold text-[#69553B] mb-6 tracking-wider">Residentes</h1>
+		<div className="page-shell">
+			<header className="page-header">
+				<h1 className="page-title">Residentes</h1>
 				<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
 					<input
 						type="text"
 						value={busca}
 						onChange={aoBuscar}
 						placeholder="Buscar por nome, e-mail, CPF ou telefone"
-						className="rounded border border-[#C3B4A8] px-3 py-2 w-full md:max-w-full md:flex-1 focus:ring-2 focus:ring-[#DDA329]"
+						className="input-base w-full md:max-w-full md:flex-1"
 					/>
 					<button
-						className="rounded bg-[#DDA329] px-6 py-2 text-[#69553B] font-bold hover:bg-[#69553B] hover:text-[#FFF] border border-[#69553B] cursor-pointer md:ml-2 transition-colors"
+						className="btn btn-primary md:ml-2"
 						onClick={() => definirModalAberto(true)}
 					>
 						Novo residente
 					</button>
 				</div>
 			</header>
-			<section className="bg-white p-4">
+			<section className="surface-card p-4">
 				{carregando ? (
-					<p className="text-center text-gray-500">Carregando...</p>
+					<p className="text-center text-[var(--rc-muted)]">Carregando...</p>
 				) : residentesFiltrados.length === 0 ? (
-					<p className="text-center text-gray-500">Nenhum residente encontrado.</p>
+					<p className="text-center text-[var(--rc-muted)]">Nenhum residente encontrado.</p>
 				   ) : (
 					   <div className="flex flex-col gap-4 md:gap-0">
 						   {/* Cabeçalho da tabela (visível só em telas md+) */}
-						   <div className="hidden md:grid grid-cols-5 bg-[#F5F5F5] font-bold text-[#69553B] px-4 py-2 border-b border-[#C3B4A8] rounded-t-lg">
+						   <div className="hidden md:grid grid-cols-5 bg-[var(--rc-surface-soft)] font-bold text-[var(--rc-primary-strong)] px-4 py-2 border-b border-[var(--rc-border)] rounded-t-lg">
 							   <div>Nome</div>
 							   <div>E-mail</div>
 							   <div>CPF</div>

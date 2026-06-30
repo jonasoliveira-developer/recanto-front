@@ -31,29 +31,29 @@ export default function Reservas() {
   }, [token]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-purple-300 p-4 font-sans">
-      <header className="mb-6 flex flex-col items-center sm:flex-row sm:justify-between">
-        <h1 className="text-2xl font-bold text-purple-900">Reservas</h1>
+    <div className="page-shell">
+      <header className="page-header">
+        <h1 className="page-title">Reservas</h1>
         <button
-          className="mt-2 rounded-lg bg-purple-600 px-4 py-2 text-white shadow hover:bg-purple-700 sm:mt-0"
+          className="btn btn-primary"
           onClick={() => definirModalAberto(true)}
         >
           Nova reserva
         </button>
       </header>
-      <section className="rounded-lg bg-white p-4 shadow-md">
+      <section className="surface-card p-4">
         {carregando ? (
-          <p className="text-center text-purple-700">Carregando...</p>
+          <p className="text-center text-[var(--rc-muted)]">Carregando...</p>
         ) : reservas.length === 0 ? (
-          <p className="text-center text-gray-500">Nenhuma reserva encontrada.</p>
+          <p className="text-center text-[var(--rc-muted)]">Nenhuma reserva encontrada.</p>
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             {reservas.map((reserva) => (
-              <li key={reserva.id} className="rounded border p-4 shadow hover:shadow-lg">
-                <h2 className="text-lg font-semibold text-purple-800">{reserva.localReservation}</h2>
-                <p className="text-sm text-gray-600">Data: {reserva.reserveDate}</p>
-                <p className="text-sm text-gray-600">Autoridade: {reserva.reservationAuthorite}</p>
-                <button className="mt-2 rounded bg-purple-500 px-3 py-1 text-white hover:bg-purple-700">Editar</button>
+              <li key={reserva.id} className="surface-card p-4">
+                <h2 className="text-lg font-semibold text-[var(--rc-primary-strong)]">{reserva.localReservation}</h2>
+                <p className="text-sm text-[var(--rc-muted)]">Data: {reserva.reserveDate}</p>
+                <p className="text-sm text-[var(--rc-muted)]">Autoridade: {reserva.reservationAuthorite}</p>
+                <button className="btn btn-secondary mt-2 !min-h-[36px] px-3 py-1 text-sm">Editar</button>
               </li>
             ))}
           </ul>
@@ -62,12 +62,12 @@ export default function Reservas() {
       <Modal aberto={modalAberto} aoFechar={() => definirModalAberto(false)} titulo="Cadastrar reserva">
         {/* Formulário de cadastro aqui */}
         <form className="flex flex-col gap-3">
-          <input className="rounded border px-3 py-2" placeholder="Local da reserva" />
-          <input className="rounded border px-3 py-2" placeholder="Data da reserva" type="datetime-local" />
-          <input className="rounded border px-3 py-2" placeholder="Autoridade" />
-          <input className="rounded border px-3 py-2" placeholder="Nome da pessoa" />
-          <input className="rounded border px-3 py-2" placeholder="Horário" type="time" />
-          <button type="submit" className="rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-700">Salvar</button>
+          <input className="input-base" placeholder="Local da reserva" />
+          <input className="input-base" placeholder="Data da reserva" type="datetime-local" />
+          <input className="input-base" placeholder="Autoridade" />
+          <input className="input-base" placeholder="Nome da pessoa" />
+          <input className="input-base" placeholder="Horario" type="time" />
+          <button type="submit" className="btn btn-primary">Salvar</button>
         </form>
       </Modal>
     </div>

@@ -68,20 +68,20 @@ export default function Ocorrencias() {
   }
 
   return (
-    <div className="min-h-screen bg-white p-4 font-sans">
-      <header className="mb-6">
-        <h1 className="text-4xl font-bold text-yellow-900 my-10 text-center w-full">Ocorrências</h1>
+    <div className="page-shell">
+      <header className="page-header">
+        <h1 className="page-title text-center sm:text-left">Ocorrencias</h1>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 max-w-4xl w-full mx-auto">
           <input
             type="text"
             value={busca}
             onChange={aoBuscar}
             placeholder="Buscar por título, descrição ou situação"
-            className="rounded border px-3 py-2 w-full md:max-w-full md:flex-1 min-w-0"
+            className="input-base w-full md:max-w-full md:flex-1 min-w-0"
             style={{ minWidth: 0 }}
           />
           <button
-            className="rounded-lg bg-yellow-600 px-4 py-2 text-white shadow hover:bg-yellow-700 md:ml-2 w-full md:w-auto"
+            className="btn btn-primary md:ml-2 w-full md:w-auto"
             style={{ minWidth: '140px' }}
             onClick={() => definirModalAberto(true)}
           >
@@ -89,16 +89,16 @@ export default function Ocorrencias() {
           </button>
         </div>
       </header>
-      <section className="rounded-lg bg-white p-4">
+      <section className="surface-card p-4">
         {carregando ? (
-          <p className="text-center text-yellow-700">Carregando...</p>
+          <p className="text-center text-[var(--rc-muted)]">Carregando...</p>
         ) : ocorrenciasFiltradas.length === 0 ? (
-          <p className="text-center text-gray-500">Nenhuma ocorrência encontrada.</p>
+          <p className="text-center text-[var(--rc-muted)]">Nenhuma ocorrencia encontrada.</p>
         ) : (
           <>
             <ul className="grid gap-4 sm:grid-cols-1 md:grid-cols-1 max-w-4xl w-full mx-auto">
               {ocorrenciasPaginadas.map((ocorrencia) => (
-                <li key={ocorrencia.id} className="rounded border p-6 shadow hover:shadow-lg transition-colors duration-200 hover:bg-yellow-50 cursor-pointer w-full h-full min-h-[260px] flex flex-col justify-between">
+                <li key={ocorrencia.id} className="surface-card p-6 transition-colors duration-200 hover:bg-[var(--rc-surface-soft)] cursor-pointer w-full h-full min-h-[260px] flex flex-col justify-between">
                   <div className="flex items-center justify-between mb-4">
                     {ocorrencia.situation === 'ABERTO' || ocorrencia.situation === 0 ? (
                       <span className="text-xs font-bold uppercase tracking-wider text-yellow-700 bg-yellow-100 px-2 py-1 rounded">
@@ -114,12 +114,12 @@ export default function Ocorrencias() {
                       </span>
                     )}
                   </div>
-                  <h2 className="text-2xl font-bold text-yellow-900 mb-4">{ocorrencia.title}</h2>
+                  <h2 className="text-2xl font-bold text-[var(--rc-primary-strong)] mb-4">{ocorrencia.title}</h2>
                   <p className="text-base text-gray-700 mb-8">{ocorrencia.description}</p>
                   <div className="flex justify-end gap-4 mt-4">
                     <>
                       <button
-                        className="rounded bg-yellow-500 px-4 py-2 text-white hover:bg-yellow-700"
+                        className="btn btn-secondary !min-h-[38px] px-4 py-2 text-sm"
                         onClick={() => {
                           setEditando(ocorrencia);
                           setTitulo(ocorrencia.title || "");
@@ -129,7 +129,7 @@ export default function Ocorrencias() {
                         }}
                       >Editar</button>
                       <button
-                        className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-800"
+                        className="btn btn-danger !min-h-[38px] px-4 py-2 text-sm"
                         onClick={async () => {
                           if (window.confirm("Tem certeza que deseja excluir esta ocorrência?")) {
                             try {

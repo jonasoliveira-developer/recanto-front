@@ -44,11 +44,11 @@ export function Paginacao({ paginaAtual, totalPaginas, aoMudar }: PaginacaoProps
 
   return (
     <>
-      <nav className="flex justify-center mt-6">
-        <ul className="inline-flex items-center gap-1 bg-white rounded-xl px-2 py-1">
+      <nav className="mt-6 flex justify-center">
+        <ul className="inline-flex items-center gap-1 rounded-xl border border-[var(--rc-border)] bg-[var(--rc-surface)] px-2 py-1 shadow-sm">
           <li>
             <button
-              className="px-3 py-2 rounded-l-lg bg-gray-100 hover:bg-blue-100 transition-colors duration-150 disabled:opacity-40 text-blue-700 font-bold cursor-pointer"
+              className="cursor-pointer rounded-l-lg px-3 py-2 font-bold text-[var(--rc-primary)] transition-colors duration-150 hover:bg-[var(--rc-surface-soft)] disabled:opacity-40"
               onClick={() => aoMudar(Math.max(1, paginaAtual - 10))}
               disabled={paginaAtual === 1}
               aria-label="Página anterior"
@@ -60,10 +60,10 @@ export function Paginacao({ paginaAtual, totalPaginas, aoMudar }: PaginacaoProps
             typeof pagina === 'number' ? (
               <li key={pagina}>
                 <button
-                  className={`px-3 py-2 mx-0.5 rounded-lg font-semibold transition-colors duration-150 cursor-pointer
+                  className={`mx-0.5 cursor-pointer rounded-lg px-3 py-2 font-semibold transition-colors duration-150
                     ${pagina === paginaAtual
-                      ? "bg-blue-600 text-white shadow-md scale-105"
-                      : "bg-gray-100 text-blue-700 hover:bg-blue-50 hover:text-blue-900"}
+                      ? "scale-105 bg-[var(--rc-primary)] text-white shadow-md"
+                      : "bg-[var(--rc-surface-soft)] text-[var(--rc-primary)] hover:bg-[#efe3d6] hover:text-[var(--rc-primary-strong)]"}
                   `}
                   onClick={() => {
                     aoMudar(pagina);
@@ -75,12 +75,12 @@ export function Paginacao({ paginaAtual, totalPaginas, aoMudar }: PaginacaoProps
                 </button>
               </li>
             ) : (
-              <li key={`ellipsis-${idx}`} className="px-2 py-1 text-gray-400 select-none text-lg">...</li>
+              <li key={`ellipsis-${idx}`} className="select-none px-2 py-1 text-lg text-[var(--rc-muted)]">...</li>
             )
           ))}
           <li>
             <button
-              className="px-3 py-2 rounded-r-lg bg-gray-100 hover:bg-blue-100 transition-colors duration-150 disabled:opacity-40 text-blue-700 font-bold cursor-pointer"
+              className="cursor-pointer rounded-r-lg px-3 py-2 font-bold text-[var(--rc-primary)] transition-colors duration-150 hover:bg-[var(--rc-surface-soft)] disabled:opacity-40"
               onClick={() => aoMudar(Math.min(totalPaginas, paginaAtual + 10))}
               disabled={paginaAtual === totalPaginas}
               aria-label="Próxima página"

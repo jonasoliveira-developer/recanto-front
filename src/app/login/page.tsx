@@ -23,18 +23,19 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-6rem)] flex items-center justify-center bg-linear-to-br from-[#F5E9DD] to-[#DDA329]">
-      <form onSubmit={aoEnviar} className="bg-[#FFF8F0] rounded-lg shadow-lg p-8 w-full max-w-sm flex flex-col gap-4 border border-[#C3B4A8]">
-        <div className="flex flex-col items-center justify-center mb-8 gap-4">
-          <img src="/96X96PX.svg" alt="Logo" className="w-40 h-40" />
-          <h1 className="text-3xl font-extrabold text-[#4B2E09] text-center">Login</h1>
+    <div className="page-shell flex items-center justify-center bg-[radial-gradient(circle_at_15%_20%,#f2dfc8_0%,#f7f3ee_40%,#f7f3ee_100%)] px-3 py-8">
+      <form onSubmit={aoEnviar} className="surface-card w-full max-w-md p-6 sm:p-8 flex flex-col gap-4">
+        <div className="mb-5 flex flex-col items-center justify-center gap-4">
+          <img src="/96X96PX.svg" alt="Logo" className="h-24 w-24 rounded-xl border border-[var(--rc-border)] bg-white p-2 shadow-sm" />
+          <h1 className="text-3xl font-extrabold text-[var(--rc-primary-strong)] text-center">Entrar</h1>
+          <p className="text-sm text-[var(--rc-muted)] text-center">Acesse sua conta para continuar no sistema</p>
         </div>
         <input
           type="email"
           placeholder="E-mail"
           value={email}
           onChange={e => definirEmail(e.target.value)}
-          className="rounded border border-[#C3B4A8] px-3 py-2 bg-[#FFF] text-[#4B2E09] focus:border-[#DDA329]"
+          className="input-base"
           required
         />
         <input
@@ -42,13 +43,13 @@ export default function Login() {
           placeholder="Senha"
           value={senha}
           onChange={e => definirSenha(e.target.value)}
-          className="rounded border border-[#C3B4A8] px-3 py-2 bg-[#FFF] text-[#4B2E09] focus:border-[#DDA329]"
+          className="input-base"
           required
         />
-        {erro && <p className="text-red-600 text-sm text-center">{erro}</p>}
+        {erro ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{erro}</p> : null}
         <button
           type="submit"
-          className="rounded bg-[#DDA329] px-6 py-2 text-[#4B2E09] font-bold hover:bg-[#C3B4A8] hover:text-[#69553B] transition-colors"
+          className="btn btn-primary w-full"
           disabled={carregando}
         >
           {carregando ? "Entrando..." : "Entrar"}

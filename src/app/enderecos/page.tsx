@@ -265,14 +265,14 @@ export default function Enderecos() {
   }
 
   return (
-    <div className="min-h-screen bg-white p-4 font-sans">
-      <header className="mb-6 flex flex-col items-center sm:flex-row sm:justify-between">
-        <h1 className="text-2xl font-bold text-teal-900">Endereços</h1>
+    <div className="page-shell">
+      <header className="page-header">
+        <h1 className="page-title">Enderecos</h1>
         <button
-          className="mt-2 rounded-lg bg-teal-600 px-4 py-2 text-white shadow hover:bg-teal-700 sm:mt-0"
+          className="btn btn-primary"
           onClick={abrirModalNovo}
         >
-          Novo endereço
+          Novo endereco
         </button>
       </header>
       <div className="mb-4 flex justify-end">
@@ -280,33 +280,33 @@ export default function Enderecos() {
           type="text"
           value={busca}
           onChange={aoBuscar}
-          placeholder="Buscar por endereço ou pessoa"
-          className="rounded border px-3 py-2 w-full max-w-xs placeholder:text-gray-800"
+          placeholder="Buscar por endereco ou pessoa"
+          className="input-base w-full max-w-xs"
         />
       </div>
-      <section className="rounded-lg bg-white p-4">
+      <section className="surface-card p-4">
         {carregando ? (
-          <p className="text-center text-teal-700">Carregando...</p>
+          <p className="text-center text-[var(--rc-muted)]">Carregando...</p>
         ) : enderecosFiltrados.length === 0 ? (
-          <p className="text-center text-gray-500">Nenhum endereço encontrado.</p>
+          <p className="text-center text-[var(--rc-muted)]">Nenhum endereco encontrado.</p>
         ) : (
           <>
             <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
               {enderecosPaginados.map((endereco) => (
-                <li key={endereco.id} className="rounded border p-4 shadow hover:shadow-lg">
-                  <h2 className="text-lg font-semibold text-teal-800">{endereco.adress}</h2>
-                  <p className="text-sm text-gray-600">Pessoa: {endereco.personName}</p>
+                <li key={endereco.id} className="surface-card p-4">
+                  <h2 className="text-lg font-semibold text-[var(--rc-primary-strong)]">{endereco.adress}</h2>
+                  <p className="text-sm text-[var(--rc-muted)]">Pessoa: {endereco.personName}</p>
                   {podeEditarEndereco ? (
                     <div className="mt-2 flex gap-2">
                       <button
-                        className="rounded bg-teal-500 px-3 py-1 text-white hover:bg-teal-700"
+                        className="btn btn-secondary !min-h-[36px] px-3 py-1 text-sm"
                         onClick={() => abrirModalEditar(endereco)}
                       >
                         Editar
                       </button>
                       {podeDeletarEndereco ? (
                         <button
-                          className="rounded bg-red-500 px-3 py-1 text-white hover:bg-red-700"
+                          className="btn btn-danger !min-h-[36px] px-3 py-1 text-sm"
                           onClick={() => abrirConfirmacaoDeletar(endereco.id)}
                         >
                           Excluir
@@ -328,13 +328,13 @@ export default function Enderecos() {
       <Modal aberto={modalAberto} aoFechar={fecharModal} titulo={editando ? "Editar endereço" : "Cadastrar endereço"}>
         <form className="flex flex-col gap-3" onSubmit={salvarEndereco}>
           {mensagemErroFormulario ? (
-            <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {mensagemErroFormulario}
             </p>
           ) : null}
-          <input className="rounded border px-3 py-2" placeholder="Endereço" value={adress} onChange={e => setAdress(e.target.value)} required />
+          <input className="input-base" placeholder="Endereco" value={adress} onChange={e => setAdress(e.target.value)} required />
           <div>
-            <label className="block mb-1 text-sm text-gray-700">Selecione a pessoa</label>
+            <label className="mb-1 block text-sm font-semibold text-[var(--rc-muted)]">Selecione a pessoa</label>
             <CustomSelect
               options={residentesOptions}
               value={person}
@@ -346,7 +346,7 @@ export default function Enderecos() {
               placeholder="Buscar pessoa..."
             />
           </div>
-          <button type="submit" disabled={salvando} className="rounded bg-teal-600 px-4 py-2 text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60">
+          <button type="submit" disabled={salvando} className="btn btn-primary disabled:cursor-not-allowed disabled:opacity-60">
             {salvando ? "Salvando..." : editando ? "Atualizar" : "Salvar"}
           </button>
         </form>

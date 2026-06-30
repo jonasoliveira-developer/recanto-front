@@ -158,11 +158,11 @@ export default function Avisos() {
   }
 
   return (
-    <div className="min-h-screen bg-white p-4 font-sans">
-      <header className="mb-6 flex flex-col items-center sm:flex-row sm:justify-between gap-2 w-full max-w-xl mx-auto">
-        <h1 className="text-2xl font-bold text-orange-900 w-full sm:w-auto text-center sm:text-left">Avisos</h1>
+    <div className="page-shell">
+      <header className="page-header w-full max-w-xl mx-auto">
+        <h1 className="page-title w-full sm:w-auto text-center sm:text-left">Avisos</h1>
         <button
-          className="w-full sm:w-auto mt-2 sm:mt-0 rounded-lg bg-orange-600 px-4 py-2 text-white shadow hover:bg-orange-700"
+          className="btn btn-primary w-full sm:w-auto"
           style={{ minWidth: 0 }}
           onClick={abrirModalNovo}
         >
@@ -175,25 +175,25 @@ export default function Avisos() {
           value={busca}
           onChange={aoBuscar}
           placeholder="Buscar por título, descrição ou autor"
-          className="rounded border px-3 py-2 w-full"
+          className="input-base"
         />
       </div>
-      <section className="rounded-lg bg-white p-4 w-full max-w-xl mx-auto">
+      <section className="surface-card p-4 w-full max-w-xl mx-auto">
         {carregando ? (
-          <p className="text-center text-orange-700">Carregando...</p>
+          <p className="text-center text-[var(--rc-muted)]">Carregando...</p>
         ) : avisosFiltrados.length === 0 ? (
-          <p className="text-center text-gray-500">Nenhum aviso encontrado.</p>
+          <p className="text-center text-[var(--rc-muted)]">Nenhum aviso encontrado.</p>
         ) : (
           <>
             <ul className="flex flex-col gap-4 w-full">
               {avisosPaginados.map((aviso) => (
-                <li key={aviso.id} className="rounded border p-4 shadow hover:shadow-lg w-full">
-                  <h2 className="text-lg font-semibold text-orange-800">{aviso.title}</h2>
-                  <p className="text-sm text-gray-600">{aviso.description}</p>
-                  <p className="text-sm text-gray-600">Autor: {aviso.personName}</p>
+                <li key={aviso.id} className="surface-card p-4 w-full">
+                  <h2 className="text-lg font-semibold text-[var(--rc-primary-strong)]">{aviso.title}</h2>
+                  <p className="text-sm text-[var(--rc-muted)]">{aviso.description}</p>
+                  <p className="text-sm text-[var(--rc-muted)]">Autor: {aviso.personName}</p>
                   <div className="flex gap-2 mt-2">
-                    <button className="rounded bg-orange-500 px-3 py-1 text-white hover:bg-orange-700" onClick={() => abrirModalEditar(aviso)}>Editar</button>
-                    <button className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-800" onClick={() => aoExcluir(aviso.id)}>Excluir</button>
+                    <button className="btn btn-secondary !min-h-[36px] px-3 py-1 text-sm" onClick={() => abrirModalEditar(aviso)}>Editar</button>
+                    <button className="btn btn-danger !min-h-[36px] px-3 py-1 text-sm" onClick={() => aoExcluir(aviso.id)}>Excluir</button>
                   </div>
                 </li>
               ))}
@@ -208,9 +208,9 @@ export default function Avisos() {
       </section>
       <Modal aberto={modalAberto} aoFechar={() => { definirModalAberto(false); setEditando(null); }} titulo={editando ? "Editar aviso" : "Cadastrar aviso"}>
         <form className="flex flex-col gap-3" onSubmit={aoSalvar}>
-          <input className="rounded border px-3 py-2 placeholder:text-gray-800" placeholder="Título" value={form.title} onChange={aoMudarForm} />
-          <input className="rounded border px-3 py-2 placeholder:text-gray-800" placeholder="Descrição" value={form.description} onChange={aoMudarForm} />
-          <button type="submit" className="rounded bg-orange-600 px-4 py-2 text-white hover:bg-orange-700">Salvar</button>
+          <input className="input-base" placeholder="Título" value={form.title} onChange={aoMudarForm} />
+          <input className="input-base" placeholder="Descrição" value={form.description} onChange={aoMudarForm} />
+          <button type="submit" className="btn btn-primary">Salvar</button>
         </form>
       </Modal>
     </div>

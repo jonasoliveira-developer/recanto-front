@@ -66,41 +66,41 @@ export default function Funcionarios() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFF] p-4 font-sans">
-      <header className="mb-6">
-        <h1 className="text-2xl font-extrabold text-[#69553B] mb-6 tracking-wider">Funcionários</h1>
+    <div className="page-shell">
+      <header className="page-header">
+        <h1 className="page-title">Funcionarios</h1>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <input
             type="text"
             value={busca}
             onChange={aoBuscar}
             placeholder="Buscar por nome, e-mail ou CPF"
-            className="rounded border border-[#C3B4A8] px-3 py-2 w-full md:max-w-full md:flex-1 focus:ring-2 focus:ring-[#DDA329]"
+            className="input-base w-full md:max-w-full md:flex-1"
           />
           <button
-            className="rounded-lg bg-green-600 px-4 py-2 text-white shadow hover:bg-green-700 cursor-pointer md:ml-2 font-bold border border-green-700"
+            className="btn btn-primary md:ml-2"
             onClick={() => definirModalAberto(true)}
           >
             Novo funcionário
           </button>
         </div>
       </header>
-      <section className="rounded-lg bg-[#FFF] p-4 border border-[#C3B4A8]">
+      <section className="surface-card p-4">
         {carregando ? (
-          <p className="text-center text-green-700">Carregando...</p>
+          <p className="text-center text-[var(--rc-muted)]">Carregando...</p>
         ) : funcionariosFiltrados.length === 0 ? (
-          <p className="text-center text-gray-500">Nenhum funcionário encontrado.</p>
+          <p className="text-center text-[var(--rc-muted)]">Nenhum funcionario encontrado.</p>
         ) : (
           <>
             {/* Tabela em tela grande, cards em tela pequena */}
             <div className="hidden md:block">
               <table className="min-w-full border rounded-lg overflow-hidden">
-                <thead className="bg-[#FFF7E6]">
+                <thead className="bg-[var(--rc-surface-soft)]">
                   <tr>
-                    <th className="px-4 py-2 text-left text-[#69553B]">Nome</th>
-                    <th className="px-4 py-2 text-left text-[#69553B]">E-mail</th>
-                    <th className="px-4 py-2 text-left text-[#69553B]">CPF</th>
-                    <th className="px-4 py-2 text-left text-[#69553B]">Ações</th>
+                    <th className="px-4 py-2 text-left text-[var(--rc-primary-strong)]">Nome</th>
+                    <th className="px-4 py-2 text-left text-[var(--rc-primary-strong)]">E-mail</th>
+                    <th className="px-4 py-2 text-left text-[var(--rc-primary-strong)]">CPF</th>
+                    <th className="px-4 py-2 text-left text-[var(--rc-primary-strong)]">Acoes</th>
                   </tr>
                 </thead>
                 <tbody>
