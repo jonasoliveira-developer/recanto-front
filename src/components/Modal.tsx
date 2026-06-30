@@ -28,6 +28,7 @@ export function Modal({ aberto, aoFechar, titulo, children }: ModalProps) {
           aria-label="Fechar modal"
         >×</button>
         <div className="px-8 pt-16 pb-8 flex-1 overflow-y-auto">
+          <h2 className="mb-4 text-2xl font-bold text-gray-800">{titulo}</h2>
           {children}
         </div>
       </div>

@@ -47,6 +47,10 @@ interface AuthContextProps {
   login: (email: string, senha: string) => Promise<void>;
   logout: () => void;
   estaAutenticado: boolean;
+  podeGerenciarPermissoesLocais: boolean;
+  modoSuperacessoLocalAtivo: boolean;
+  alternarSuperacessoLocal: () => void;
+  temPermissaoEfetiva: (role: UserRole) => boolean;
 }
 
 const AuthContext = createContext<AuthContextProps>({} as AuthContextProps);
@@ -58,7 +62,53 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, definirUsuario] = useState<Usuario | null>(null);
   const [token, definirToken] = useState<string | null>(null);
+  const [modoSuperacessoLocalAtivo, definirModoSuperacessoLocalAtivo] = useState(false);
   const router = useRouter();
+
+  const CHAVE_TOGGLE_LOCAL = "auth_toggle_superlocal";
+
+  function ambienteLocalElegivelToggle() {
+    if (typeof window === "undefined") return false;
+
+    const hostname = window.location.hostname;
+    const ehLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+    if (!ehLocalhost) return false;
+
+    const flagPublica = process.env.NEXT_PUBLIC_ENABLE_LOCAL_AUTH_TOGGLE;
+    if (flagPublica === "false") return false;
+
+    return true;
+  }
+
+  function lerEstadoToggleLocal() {
+    if (!ambienteLocalElegivelToggle()) return false;
+    return localStorage.getItem(CHAVE_TOGGLE_LOCAL) === "1";
+  }
+
+  function salvarEstadoToggleLocal(ativo: boolean) {
+    if (typeof window === "undefined") return;
+    if (!ambienteLocalElegivelToggle()) {
+      localStorage.removeItem(CHAVE_TOGGLE_LOCAL);
+      return;
+    }
+    localStorage.setItem(CHAVE_TOGGLE_LOCAL, ativo ? "1" : "0");
+  }
+
+  function alternarSuperacessoLocal() {
+    if (!ambienteLocalElegivelToggle()) {
+      definirModoSuperacessoLocalAtivo(false);
+      return;
+    }
+    const proximo = !modoSuperacessoLocalAtivo;
+    definirModoSuperacessoLocalAtivo(proximo);
+    salvarEstadoToggleLocal(proximo);
+  }
+
+  function temPermissaoEfetiva(role: UserRole) {
+    if (modoSuperacessoLocalAtivo) return true;
+    if (!usuario) return false;
+    return hasRole(usuario, role);
+  }
 
   useEffect(() => {
     const tokenSalvo = localStorage.getItem("token");
@@ -75,6 +125,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           definirUsuario(null);
         }
       });
+    }
+
+    if (ambienteLocalElegivelToggle()) {
+      definirModoSuperacessoLocalAtivo(lerEstadoToggleLocal());
+    } else {
+      definirModoSuperacessoLocalAtivo(false);
     }
   }, []);
 
@@ -98,15 +154,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("id");
     localStorage.removeItem("user");
     localStorage.removeItem("roles");
+    localStorage.removeItem(CHAVE_TOGGLE_LOCAL);
     definirToken(null);
     definirUsuario(null);
+    definirModoSuperacessoLocalAtivo(false);
     router.push("/login");
   }
 
   const estaAutenticado = !!token;
+  const podeGerenciarPermissoesLocais = ambienteLocalElegivelToggle();
 
   return (
-    <AuthContext.Provider value={{ usuario, token, login, logout, estaAutenticado }}>
+    <AuthContext.Provider
+      value={{
+        usuario,
+        token,
+        login,
+        logout,
+        estaAutenticado,
+        podeGerenciarPermissoesLocais,
+        modoSuperacessoLocalAtivo,
+        alternarSuperacessoLocal,
+        temPermissaoEfetiva
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

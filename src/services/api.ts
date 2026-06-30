@@ -23,4 +23,25 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+
+    if (status === 403) {
+      const mensagemPadrao = "Voce nao tem permissao para executar esta acao.";
+      const dadosResposta = error?.response?.data;
+
+      if (!dadosResposta || typeof dadosResposta !== "object") {
+        error.response = error.response || {};
+        error.response.data = { message: mensagemPadrao };
+      } else if (!dadosResposta.message) {
+        dadosResposta.message = mensagemPadrao;
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default api;
