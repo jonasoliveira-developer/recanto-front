@@ -71,6 +71,7 @@ interface AuthContextProps {
   login: (email: string, senha: string) => Promise<void>;
   logout: () => void;
   estaAutenticado: boolean;
+  carregandoAuth: boolean;
   temPermissaoEfetiva: (role: UserRole) => boolean;
 }
 
@@ -83,6 +84,7 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, definirUsuario] = useState<Usuario | null>(null);
   const [token, definirToken] = useState<string | null>(null);
+  const [carregandoAuth, definirCarregandoAuth] = useState(true);
   const router = useRouter();
 
   function temPermissaoEfetiva(role: UserRole) {
@@ -96,17 +98,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userSalvo = localStorage.getItem("user");
     const rolesSalvo = localStorage.getItem("roles");
     if (tokenSalvo) {
-      // Use um microtask para evitar setState direto no efeito
-      Promise.resolve().then(() => {
-        definirToken(tokenSalvo);
-        if (userSalvo) {
-          definirUsuario({ email: userSalvo, id: idSalvo ?? undefined, roles: rolesSalvo ?? undefined });
-        } else {
-          definirUsuario(null);
-        }
-      });
+      definirToken(tokenSalvo);
+      if (userSalvo) {
+        definirUsuario({ email: userSalvo, id: idSalvo ?? undefined, roles: rolesSalvo ?? undefined });
+      } else {
+        definirUsuario(null);
+      }
     }
-
+    definirCarregandoAuth(false);
   }, []);
 
   async function login(email: string, senha: string) {
@@ -121,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       definirUsuario(null);
     }
-    router.push("/");
+    router.push("/inicio");
   }
 
   function logout() {
@@ -144,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         estaAutenticado,
+        carregandoAuth,
         temPermissaoEfetiva
       }}
     >

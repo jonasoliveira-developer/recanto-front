@@ -49,7 +49,7 @@ export function Paginacao({ paginaAtual, totalPaginas, aoMudar }: PaginacaoProps
           <li>
             <button
               className="cursor-pointer rounded-l-lg px-3 py-2 font-bold text-[var(--rc-primary)] transition-colors duration-150 hover:bg-[var(--rc-surface-soft)] disabled:opacity-40"
-              onClick={() => aoMudar(Math.max(1, paginaAtual - 10))}
+              onClick={() => aoMudar(Math.max(1, paginaAtual - 1))}
               disabled={paginaAtual === 1}
               aria-label="Página anterior"
             >
@@ -81,7 +81,7 @@ export function Paginacao({ paginaAtual, totalPaginas, aoMudar }: PaginacaoProps
           <li>
             <button
               className="cursor-pointer rounded-r-lg px-3 py-2 font-bold text-[var(--rc-primary)] transition-colors duration-150 hover:bg-[var(--rc-surface-soft)] disabled:opacity-40"
-              onClick={() => aoMudar(Math.min(totalPaginas, paginaAtual + 10))}
+              onClick={() => aoMudar(Math.min(totalPaginas, paginaAtual + 1))}
               disabled={paginaAtual === totalPaginas}
               aria-label="Próxima página"
             >

@@ -1,60 +1,35 @@
 "use client";
-import { useEffect, useState } from "react";
-import { listarFuncionarios, removerFuncionario, atualizarFuncionario } from "../../services/funcionariosApi";
-import { useAuth, UserRole, hasRole } from "../../context/AuthContext";
+import { useMemo, useState } from "react";
+import { removerFuncionario, atualizarFuncionario } from "../../services/funcionariosApi";
+import { useAuth } from "../../context/AuthContext";
 import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
-
+import { useFuncionarios } from "@/hooks/useFuncionarios";
+import { filtrarPorBusca, paginarLista } from "@/lib/filtros";
 
 export default function Funcionarios() {
-  const [funcionarios, definirFuncionarios] = useState<any[]>([]);
+  const { funcionarios, carregando, recarregar } = useFuncionarios();
   const [modalAberto, definirModalAberto] = useState(false);
   const [editando, setEditando] = useState<any | null>(null);
-  const [carregando, definirCarregando] = useState(false);
   const [busca, definirBusca] = useState("");
   const [paginaAtual, definirPaginaAtual] = useState(1);
   const itensPorPagina = 10;
-  const { usuario, token } = useAuth();
-  // Estados do formulário
+  const { token } = useAuth();
   const [nome, setNome] = useState("");
   const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
 
-  useEffect(() => {
-    async function carregarFuncionarios() {
-      definirCarregando(true);
-      try {
-        if (!token) {
-          definirFuncionarios([]);
-          definirCarregando(false);
-          return;
-        }
-        const dados = await listarFuncionarios(token);
-        definirFuncionarios(dados);
-      } catch {
-        definirFuncionarios([]);
-      }
-      definirCarregando(false);
-    }
-    carregarFuncionarios();
-  }, [token]);
+  const funcionariosFiltrados = useMemo(
+    () => filtrarPorBusca(funcionarios, busca, ["name", "email", "cpf"]),
+    [funcionarios, busca]
+  );
 
-  // Filtragem por busca
-  const funcionariosFiltrados = funcionarios.filter((funcionario) => {
-    const termo = busca.toLowerCase();
-    return (
-      funcionario.name?.toLowerCase().includes(termo) ||
-      funcionario.email?.toLowerCase().includes(termo) ||
-      funcionario.cpf?.toLowerCase().includes(termo)
-    );
-  });
-
-  // Paginação
-  const totalPaginas = Math.ceil(funcionariosFiltrados.length / itensPorPagina);
-  const inicio = (paginaAtual - 1) * itensPorPagina;
-  const fim = inicio + itensPorPagina;
-  const funcionariosPaginados = funcionariosFiltrados.slice(inicio, fim);
+  const { itens: funcionariosPaginados, totalPaginas } = paginarLista(
+    funcionariosFiltrados,
+    paginaAtual,
+    itensPorPagina
+  );
 
   function aoMudarPagina(novaPagina: number) {
     definirPaginaAtual(novaPagina);
@@ -128,7 +103,7 @@ export default function Funcionarios() {
                               if (window.confirm("Tem certeza que deseja excluir este funcionário?")) {
                                 try {
                                   await removerFuncionario(funcionario.id, token || "");
-                                  window.location.reload();
+                                  await recarregar();
                                 } catch (erro) {
                                   alert("Erro ao excluir funcionário!");
                                 }
@@ -175,7 +150,7 @@ export default function Funcionarios() {
                         if (window.confirm("Tem certeza que deseja excluir este funcionário?")) {
                           try {
                             await removerFuncionario(funcionario.id, token || "");
-                            window.location.reload();
+                            await recarregar();
                           } catch (erro) {
                             alert("Erro ao excluir funcionário!");
                           }
@@ -207,7 +182,9 @@ export default function Funcionarios() {
           try {
             if (editando) {
               await atualizarFuncionario(editando.id, dados, token);
-              window.location.reload();
+              await recarregar();
+              definirModalAberto(false);
+              setEditando(null);
             } else {
               alert("Criação de funcionário não implementada.");
             }

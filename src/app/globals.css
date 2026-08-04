@@ -15,6 +15,19 @@
   --rc-warning: #b7791f;
   --rc-danger: #c53030;
   --rc-info: #2b6cb0;
+  --app-tab-bar-height: 4.25rem;
+  --app-footer-height: 2rem;
+  --app-chrome-bottom: calc(var(--app-tab-bar-height) + env(safe-area-inset-bottom, 0px));
+  --color-tab-bar-bg: rgba(255, 255, 255, 0.9);
+  --color-tab-active: var(--rc-primary-strong);
+  --color-tab-inactive: #6b7280;
+  --z-chrome: 30;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --app-chrome-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 
 @theme inline {
@@ -126,4 +139,61 @@ h4 {
 
 .btn-danger:hover {
   background: #9b2c2c;
+}
+
+.chrome-app-header {
+  background: linear-gradient(135deg, #c9922a 0%, #dda329 45%, #b8862a 100%);
+  color: var(--rc-primary-strong);
+  border-bottom: 3px solid var(--rc-primary-strong);
+  box-shadow: 0 4px 14px rgba(61, 40, 18, 0.12);
+}
+
+.chrome-glass-bottom {
+  background: var(--color-tab-bar-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--rc-border);
+  box-shadow: 0 -4px 18px rgba(61, 40, 18, 0.08);
+}
+
+.pb-app-chrome {
+  padding-bottom: calc(var(--app-chrome-bottom) + 1rem);
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@keyframes splash-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.splash-nome-app {
+  color: #fff;
+  animation: splash-fade-in 0.35s ease-out;
+}
+
+@keyframes splash-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.splash-aguardando {
+  animation: splash-pulse 1.4s ease-in-out infinite;
 }

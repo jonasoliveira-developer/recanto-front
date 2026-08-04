@@ -1,231 +1,126 @@
 "use client";
-import { useEffect, useState } from "react";
-import { listarResidentes, atualizarResidente, removerResidente } from "../../services/recantoApi";
-import { useAuth, UserRole, hasRole } from "../../context/AuthContext";
-import { Modal } from "../../components/Modal";
-import { Paginacao } from "../../components/Paginacao";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useResidentes, type Residente } from "@/hooks/useResidentes";
+import { useAuth } from "@/context/AuthContext";
+import { filtrarPorBusca, paginarLista } from "@/lib/filtros";
+import ListaResidentes from "@/components/Residente/ListaResidentes";
+import ModalResidenteForm from "@/components/Residente/ModalResidenteForm";
+import { removerResidente } from "@/services/recantoApi";
+import { toast } from "react-toastify";
+import { FiPlus } from "react-icons/fi";
+
+function ResidentsPageClient() {
+  const searchParams = useSearchParams();
+  const qInicial = searchParams.get("q") || "";
+  const { token } = useAuth();
+  const { residentes, carregando, recarregar } = useResidentes();
+  const [busca, setBusca] = useState(qInicial);
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [editando, setEditando] = useState<Residente | null>(null);
+  const itensPorPagina = 10;
+
+  useEffect(() => {
+    setBusca(qInicial);
+    setPaginaAtual(1);
+  }, [qInicial]);
+
+  const filtrados = useMemo(
+    () =>
+      filtrarPorBusca(residentes, busca, [
+        "name",
+        "email",
+        "cpf",
+        "phoneNumber",
+      ]),
+    [residentes, busca]
+  );
+
+  const { itens, totalPaginas } = paginarLista(
+    filtrados,
+    paginaAtual,
+    itensPorPagina
+  );
+
+  async function excluir(r: Residente) {
+    if (!token) return;
+    if (!window.confirm(`Excluir residente ${r.name}?`)) return;
+    try {
+      await removerResidente(r.id, token);
+      toast.success("Residente excluído!");
+      await recarregar();
+    } catch {
+      toast.error("Erro ao excluir residente.");
+    }
+  }
+
+  return (
+    <div className="page-shell flex flex-col gap-4">
+      <header className="page-header">
+        <h1 className="page-title">Residentes</h1>
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            type="search"
+            className="input-base flex-1"
+            placeholder="Buscar por nome, e-mail, CPF ou telefone"
+            value={busca}
+            onChange={(e) => {
+              setBusca(e.target.value);
+              setPaginaAtual(1);
+            }}
+          />
+          <button
+            type="button"
+            className="btn btn-primary inline-flex gap-2"
+            onClick={() => {
+              setEditando(null);
+              setModalAberto(true);
+            }}
+          >
+            <FiPlus size={18} />
+            Novo residente
+          </button>
+        </div>
+      </header>
+
+      <ListaResidentes
+        residentes={itens}
+        carregando={carregando}
+        paginaAtual={paginaAtual}
+        totalPaginas={totalPaginas}
+        aoMudarPagina={setPaginaAtual}
+        onEditar={(r) => {
+          setEditando(r);
+          setModalAberto(true);
+        }}
+        onExcluir={excluir}
+      />
+
+      <ModalResidenteForm
+        aberto={modalAberto}
+        aoFechar={() => {
+          setModalAberto(false);
+          setEditando(null);
+        }}
+        editando={editando}
+        onSalvo={async () => {
+          await recarregar();
+        }}
+      />
+    </div>
+  );
+}
 
 export default function ResidentsPage() {
-	const [residentes, definirResidentes] = useState<any[]>([]);
-	const [modalAberto, definirModalAberto] = useState(false);
-	const [editando, setEditando] = useState<any | null>(null);
-	const [carregando, definirCarregando] = useState(false);
-	const [busca, definirBusca] = useState("");
-	const [paginaAtual, definirPaginaAtual] = useState(1);
-	const itensPorPagina = 6;
-	const { usuario, token } = useAuth();
-
-	// Estados do formulário do modal
-	const [nome, setNome] = useState("");
-	const [cpf, setCpf] = useState("");
-	const [email, setEmail] = useState("");
-	const [telefone, setTelefone] = useState("");
-	const [senha, setSenha] = useState("");
-	const [perfis, setPerfis] = useState<number[]>([2]);
-
-	async function carregarResidentes() {
-		definirCarregando(true);
-		try {
-			if (!token) {
-				definirResidentes([]);
-				definirCarregando(false);
-				return;
-			}
-			const dados = await listarResidentes(token);
-			definirResidentes(dados);
-		} catch {
-			definirResidentes([]);
-		}
-		definirCarregando(false);
-	}
-
-	useEffect(() => {
-		carregarResidentes();
-	}, [token]);
-
-	// Filtragem por busca
-	const residentesFiltrados = residentes.filter((residente) => {
-		const termo = busca.toLowerCase();
-		return (
-			residente.name?.toLowerCase().includes(termo) ||
-			residente.email?.toLowerCase().includes(termo) ||
-			residente.cpf?.toLowerCase().includes(termo) ||
-			residente.phoneNumber?.toLowerCase().includes(termo)
-		);
-	});
-
-	// Paginação
-	const totalPaginas = Math.ceil(residentesFiltrados.length / itensPorPagina);
-	const inicio = (paginaAtual - 1) * itensPorPagina;
-	const fim = inicio + itensPorPagina;
-	const residentesPaginados = residentesFiltrados.slice(inicio, fim);
-
-	function aoMudarPagina(novaPagina: number) {
-		definirPaginaAtual(novaPagina);
-	}
-
-	function aoBuscar(e: React.ChangeEvent<HTMLInputElement>) {
-		definirBusca(e.target.value);
-		definirPaginaAtual(1);
-	}
-
-	async function handleSubmit(e: React.FormEvent) {
-		e.preventDefault();
-		if (!token) return;
-		const dados: any = {
-			name: nome,
-			cpf,
-			email,
-			password: senha || (editando?.password ?? ""),
-			profiles: perfis,
-			dateCriation: new Date().toLocaleDateString('pt-BR')
-		};
-		if (telefone) dados.phoneNumber = telefone;
-		try {
-			if (editando) {
-				await atualizarResidente(editando.id, dados, token);
-				toast.success("Residente atualizado com sucesso!");
-			} else {
-				const resposta = await (await import("../../services/recantoApi")).criarResidente(dados, token);
-				toast.success("Residente cadastrado com sucesso!");
-			}
-			definirModalAberto(false);
-			setNome(""); setCpf(""); setEmail(""); setTelefone(""); setSenha(""); setPerfis([2]); setEditando(null);
-			await carregarResidentes();
-		} catch (erro: any) {
-			toast.error("Erro ao salvar residente! " + (erro?.response?.data?.message || ""));
-			console.error("Erro ao salvar residente:", erro);
-		}
-	}
-
-	return (
-		<div className="page-shell">
-			<header className="page-header">
-				<h1 className="page-title">Residentes</h1>
-				<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-					<input
-						type="text"
-						value={busca}
-						onChange={aoBuscar}
-						placeholder="Buscar por nome, e-mail, CPF ou telefone"
-						className="input-base w-full md:max-w-full md:flex-1"
-					/>
-					<button
-						className="btn btn-primary md:ml-2"
-						onClick={() => definirModalAberto(true)}
-					>
-						Novo residente
-					</button>
-				</div>
-			</header>
-			<section className="surface-card p-4">
-				{carregando ? (
-					<p className="text-center text-[var(--rc-muted)]">Carregando...</p>
-				) : residentesFiltrados.length === 0 ? (
-					<p className="text-center text-[var(--rc-muted)]">Nenhum residente encontrado.</p>
-				   ) : (
-					   <div className="flex flex-col gap-4 md:gap-0">
-						   {/* Cabeçalho da tabela (visível só em telas md+) */}
-						   <div className="hidden md:grid grid-cols-5 bg-[var(--rc-surface-soft)] font-bold text-[var(--rc-primary-strong)] px-4 py-2 border-b border-[var(--rc-border)] rounded-t-lg">
-							   <div>Nome</div>
-							   <div>E-mail</div>
-							   <div>CPF</div>
-							   <div>Telefone</div>
-							   <div>Ações</div>
-						   </div>
-						   {residentesPaginados.map((residente) => (
-							   <div
-								   key={residente.id}
-								   className="border border-[#C3B4A8] rounded-lg p-4 shadow-sm flex flex-col gap-2 bg-white w-full md:rounded-none md:rounded-b-lg md:border-t-0 md:border-l-0 md:border-r-0 md:grid md:grid-cols-5 md:items-center md:gap-0"
-							   >
-								   {/* Nome */}
-								   <div className="font-bold text-[#69553B] text-lg md:text-base md:font-normal">{residente.name}</div>
-								   {/* E-mail */}
-								   <div className="text-sm text-gray-700 md:text-base"><span className="font-semibold md:hidden">E-mail:</span> {residente.email}</div>
-								   {/* CPF */}
-								   <div className="text-sm text-gray-700 md:text-base"><span className="font-semibold md:hidden">CPF:</span> {residente.cpf}</div>
-								   {/* Telefone */}
-								   <div className="text-sm text-gray-700 md:text-base"><span className="font-semibold md:hidden">Telefone:</span> {residente.phoneNumber}</div>
-								   {/* Ações */}
-								   <div className="flex gap-2 mt-2 md:mt-0 md:justify-center">
-									   <button
-										   className="rounded bg-[#C3B4A8] px-3 py-1 text-[#69553B] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer transition-colors"
-										   onClick={() => {
-											   setEditando(residente);
-											   setNome(residente.name || "");
-											   setCpf(residente.cpf || "");
-											   setEmail(residente.email || "");
-											   setTelefone(residente.phoneNumber || "");
-											   setSenha("");
-											   const perfisInt = Array.isArray(residente.profiles)
-												   ? residente.profiles.map((p: any) => typeof p === 'string' ? (p === 'RESIDENT' ? 2 : p === 'ADMIN' ? 0 : p === 'EMPLOYEE' ? 1 : 2) : p)
-												   : [2];
-											   setPerfis(perfisInt);
-											   definirModalAberto(true);
-										   }}
-									   >Editar</button>
-									   <button
-										   className="rounded bg-[#69553B] px-3 py-1 text-[#FFF] hover:bg-[#DDA329] hover:text-[#69553B] border border-[#69553B] cursor-pointer transition-colors"
-										   onClick={async () => {
-											   if (window.confirm("Tem certeza que deseja excluir este residente?")) {
-												   try {
-													   await removerResidente(residente.id, token || "");
-													   toast.success("Residente excluído com sucesso!");
-													   await carregarResidentes();
-												   } catch (erro: any) {
-													   toast.error("Erro ao excluir residente! " + (erro?.response?.data?.message || ""));
-												   }
-											   }
-										   }}
-									   >Excluir</button>
-								   </div>
-							   </div>
-						   ))}
-					   </div>
-				   )}
-			</section>
-			<Paginacao
-				paginaAtual={paginaAtual}
-				totalPaginas={totalPaginas}
-				aoMudar={aoMudarPagina}
-			/>
-			<Modal
-				aberto={modalAberto}
-				aoFechar={() => {definirModalAberto(false); setEditando(null);}}
-				titulo={editando ? "Editar residente" : "Cadastrar residente"}
-			>
-				<form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-					<input className="rounded border px-3 py-2" placeholder="Nome completo" value={nome} onChange={e => setNome(e.target.value)} required />
-					<input className="rounded border px-3 py-2" placeholder="CPF" value={cpf} onChange={e => setCpf(e.target.value)} required />
-					<input className="rounded border px-3 py-2" placeholder="E-mail" value={email} onChange={e => setEmail(e.target.value)} required />
-					<input className="rounded border px-3 py-2" placeholder="Telefone (opcional)" value={telefone} onChange={e => setTelefone(e.target.value)} />
-					<input className="rounded border px-3 py-2" placeholder="Senha" type="password" value={senha} onChange={e => setSenha(e.target.value)} />
-					<div className="flex gap-4 items-center">
-						<label className="flex items-center gap-1">
-							<input type="checkbox" name="perfil" value={0} checked={perfis.includes(0)} onChange={e => {
-								if (e.target.checked) setPerfis([...perfis, 0]);
-								else setPerfis(perfis.filter(p => p !== 0));
-							}} /> ADM
-						</label>
-						<label className="flex items-center gap-1">
-							<input type="checkbox" name="perfil" value={1} checked={perfis.includes(1)} onChange={e => {
-								if (e.target.checked) setPerfis([...perfis, 1]);
-								else setPerfis(perfis.filter(p => p !== 1));
-							}} /> Funcionário
-						</label>
-						<label className="flex items-center gap-1">
-							<input type="checkbox" name="perfil" value={2} checked={perfis.includes(2)} onChange={e => {
-								if (e.target.checked) setPerfis([...perfis, 2]);
-								else setPerfis(perfis.filter(p => p !== 2));
-							}} /> Residente
-						</label>
-					</div>
-					<button type="submit" className="rounded bg-[#DDA329] px-4 py-2 text-[#69553B] font-bold hover:bg-[#69553B] hover:text-[#FFF] border border-[#69553B] cursor-pointer">Salvar</button>
-				</form>
-				<ToastContainer position="top-right" autoClose={2000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
-			</Modal>
-		</div>
-	);
+  return (
+    <Suspense
+      fallback={
+        <p className="p-8 text-center text-[var(--rc-muted)]">Carregando…</p>
+      }
+    >
+      <ResidentsPageClient />
+    </Suspense>
+  );
 }

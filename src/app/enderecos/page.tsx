@@ -1,27 +1,31 @@
 "use client";
-import { useEffect, useState } from "react";
-import { atualizarEndereco, buscarEnderecoPorId, criarEndereco, deletarEndereco, listarEnderecos } from "../../services/enderecosApi";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { atualizarEndereco, buscarEnderecoPorId, criarEndereco, deletarEndereco } from "../../services/enderecosApi";
 import { useAuth, UserRole } from "../../context/AuthContext";
 import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 import { CustomSelect } from "../../components/CustomSelect";
+import { useEnderecos } from "@/hooks/useEnderecos";
+import { useResidentes } from "@/hooks/useResidentes";
+import { filtrarPorBusca, filtrarPorResidente, paginarLista } from "@/lib/filtros";
 
-export default function Enderecos() {
-  const [enderecos, definirEnderecos] = useState<any[]>([]);
+function EnderecosClient() {
+  const searchParams = useSearchParams();
+  const residentIdFiltro = searchParams.get("residentId");
+  const { enderecos, carregando, recarregar } = useEnderecos();
+  const { residentes } = useResidentes();
   const [modalAberto, definirModalAberto] = useState(false);
-  const [carregando, definirCarregando] = useState(false);
   const [salvando, definirSalvando] = useState(false);
   const [busca, definirBusca] = useState("");
   const [mensagemErroFormulario, definirMensagemErroFormulario] = useState("");
   const [paginaAtual, definirPaginaAtual] = useState(1);
   const itensPorPagina = 10;
   const { token, logout, temPermissaoEfetiva } = useAuth();
-  // Estados para formulário
   const [adress, setAdress] = useState("");
   const [person, setPerson] = useState("");
   const [personName, setPersonName] = useState("");
   const [editando, definirEditando] = useState<any | null>(null);
-  const [residentes, setResidentes] = useState<any[]>([]);
   const [modalConfirmacaoAberto, definirModalConfirmacaoAberto] = useState(false);
   const [enderecoDeletando, definirEnderecoDeletando] = useState<number | null>(null);
   const [deletando, definirDeletando] = useState(false);
@@ -30,9 +34,15 @@ export default function Enderecos() {
   const podeEditarEndereco = temPermissaoEfetiva(UserRole.ADMIN) || temPermissaoEfetiva(UserRole.EMPLOYEE);
   const podeDeletarEndereco = temPermissaoEfetiva(UserRole.ADMIN) || temPermissaoEfetiva(UserRole.EMPLOYEE);
 
+  useEffect(() => {
+    if (residentIdFiltro && !person) {
+      setPerson(residentIdFiltro);
+    }
+  }, [residentIdFiltro, person]);
+
   function limparFormulario() {
     setAdress("");
-    setPerson("");
+    setPerson(residentIdFiltro || "");
     setPersonName("");
     definirMensagemErroFormulario("");
   }
@@ -108,16 +118,11 @@ export default function Enderecos() {
     definirSalvando(true);
     try {
       if (editando?.id) {
-        const enderecoAtualizado = await atualizarEndereco(editando.id, payload, token);
-        definirEnderecos((listaAtual) =>
-          listaAtual.map((item) => (item.id === editando.id ? { ...item, ...enderecoAtualizado, ...payload } : item))
-        );
+        await atualizarEndereco(editando.id, payload, token);
       } else {
         await criarEndereco(payload, token);
-        const dadosAtualizados = await listarEnderecos(token);
-        definirEnderecos(dadosAtualizados);
       }
-
+      await recarregar();
       fecharModal();
     } catch (erro: any) {
       const status = erro?.response?.status;
@@ -166,10 +171,7 @@ export default function Enderecos() {
 
     try {
       await deletarEndereco(enderecoDeletando, token);
-      // Sucesso: remover do estado local
-      definirEnderecos((listaAtual) =>
-        listaAtual.filter((item) => item.id !== enderecoDeletando)
-      );
+      await recarregar();
       fecharConfirmacaoDeletar();
       alert("Endereço excluído com sucesso.");
     } catch (erro: any) {
@@ -206,54 +208,18 @@ export default function Enderecos() {
     }
   }
 
-  // Carregar residentes ao abrir modal
-  useEffect(() => {
-    if (modalAberto && token) {
-      (async () => {
-        try {
-          const listaResidentes = await (await import("../../services/recantoApi")).listarResidentes(token);
-          setResidentes(listaResidentes || []);
-        } catch {
-          setResidentes([]);
-        }
-      })();
-    }
-  }, [modalAberto, token]);
-  const residentesOptions = residentes.map(r => ({ id: r.id, label: r.name }));
+  const residentesOptions = residentes.map(r => ({ id: r.id, label: r.name || "" }));
 
-  useEffect(() => {
-    async function carregarEnderecos() {
-      definirCarregando(true);
-      try {
-        if (!token) {
-          definirEnderecos([]);
-          definirCarregando(false);
-          return;
-        }
-        const dados = await listarEnderecos(token);
-        definirEnderecos(dados);
-      } catch {
-        definirEnderecos([]);
-      }
-      definirCarregando(false);
-    }
-    carregarEnderecos();
-  }, [token]);
+  const enderecosFiltrados = useMemo(() => {
+    let lista = filtrarPorResidente(enderecos, residentIdFiltro);
+    return filtrarPorBusca(lista, busca, ["adress", "personName"]);
+  }, [enderecos, busca, residentIdFiltro]);
 
-  // Filtragem por busca
-  const enderecosFiltrados = enderecos.filter((endereco) => {
-    const termo = busca.toLowerCase();
-    return (
-      endereco.adress?.toLowerCase().includes(termo) ||
-      endereco.personName?.toLowerCase().includes(termo)
-    );
-  });
-
-  // Paginação
-  const totalPaginas = Math.ceil(enderecosFiltrados.length / itensPorPagina);
-  const inicio = (paginaAtual - 1) * itensPorPagina;
-  const fim = inicio + itensPorPagina;
-  const enderecosPaginados = enderecosFiltrados.slice(inicio, fim);
+  const { itens: enderecosPaginados, totalPaginas } = paginarLista(
+    enderecosFiltrados,
+    paginaAtual,
+    itensPorPagina
+  );
 
   function aoMudarPagina(novaPagina: number) {
     definirPaginaAtual(novaPagina);
@@ -275,6 +241,14 @@ export default function Enderecos() {
           Novo endereco
         </button>
       </header>
+      {residentIdFiltro ? (
+        <p className="mb-3 rounded-lg border border-[var(--rc-border)] bg-[var(--rc-surface-soft)] px-3 py-2 text-sm text-[var(--rc-primary)]">
+          Filtrando pelo residente #{residentIdFiltro}.{" "}
+          <a href="/enderecos" className="font-bold underline">
+            Limpar filtro
+          </a>
+        </p>
+      ) : null}
       <div className="mb-4 flex justify-end">
           <input
           type="text"
@@ -383,5 +357,13 @@ export default function Enderecos() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+export default function Enderecos() {
+  return (
+    <Suspense fallback={<p className="p-8 text-center text-[var(--rc-muted)]">Carregando…</p>}>
+      <EnderecosClient />
+    </Suspense>
   );
 }

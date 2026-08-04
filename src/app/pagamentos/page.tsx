@@ -1,18 +1,37 @@
 "use client";
 
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { FaRegFileAlt, FaPrint } from "react-icons/fa";
 import { jsPDF } from "jspdf";
-import { listarPagamentos, criarPagamento, atualizarPagamento, removerPagamento } from "../../services/pagamentosApi";
+import { criarPagamento, atualizarPagamento, removerPagamento } from "../../services/pagamentosApi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAuth, UserRole, hasRole } from "../../context/AuthContext";
 import { Modal } from "../../components/Modal";
 import { Paginacao } from "../../components/Paginacao";
 import { CustomSelect } from "../../components/CustomSelect";
+import { usePagamentos } from "@/hooks/usePagamentos";
+import { useResidentes } from "@/hooks/useResidentes";
+import { useEnderecos } from "@/hooks/useEnderecos";
+import {
+  filtrarPorBusca,
+  filtrarPorResidente,
+  filtrarPorSituacao,
+  filtrarPagamentosPorPeriodo,
+  resolverEnderecoCanonico,
+} from "@/lib/filtros";
 
 export default function Pagamentos() {
+  return (
+    <Suspense fallback={<p className="p-8 text-center text-[var(--rc-muted)]">Carregando…</p>}>
+      <PagamentosClient />
+    </Suspense>
+  );
+}
+
+function PagamentosClient() {
             // Estado para contador de criação em lote
             const [criadosLote, setCriadosLote] = useState(0);
           // Estado para itens restantes na exclusão em lote
@@ -40,10 +59,13 @@ export default function Pagamentos() {
     const [carregandoGrupo, setCarregandoGrupo] = useState(false);
   // Contexto de autenticação
   const { usuario, token } = useAuth ? useAuth() : { usuario: null, token: null };
+  const searchParams = useSearchParams();
+  const residentIdFiltro = searchParams.get("residentId");
 
-  // Estados principais
-  const [pagamentos, setPagamentos] = useState<any[]>([]);
-  const [carregando, setCarregando] = useState<boolean>(false);
+  // Fonte única (SWR)
+  const { pagamentos, carregando, recarregar: recarregarPagamentos } = usePagamentos();
+  const { residentes } = useResidentes();
+  const { enderecos } = useEnderecos();
   const [busca, setBusca] = useState<string>("");
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("");
   const [paginaAtual, setPaginaAtual] = useState<number>(1);
@@ -71,58 +93,13 @@ export default function Pagamentos() {
     { codigo: "1", nome: "Fechado" },
   ];
 
-  // Estados para selects dinâmicos
-  const [residentes, setResidentes] = useState<any[]>([]);
-  const [enderecos, setEnderecos] = useState<any[]>([]);
   function resolverEnderecoPagamento(valorEndereco: string) {
     const enderecoSelecionado = enderecos.find((item) => String(item.id) === String(valorEndereco));
     return enderecoSelecionado?.adress || valorEndereco || "";
   }
   // Arrays formatados para CustomSelect
-  const residentesOptions = residentes.map(r => ({ id: r.id, label: r.name }));
-  const enderecosOptions = enderecos.map(e => ({ id: e.id, label: e.adress }));
-
-  // Carregar residentes e endereços ao abrir modal de pagamentos em lote
-  useEffect(() => {
-    if (modalGrupoAberto) {
-      async function fetchDataGrupo() {
-        try {
-          if (token) {
-          const listaResidentes = await (await import('../../services/recantoApi')).listarResidentes(token);
-          setResidentes(listaResidentes || []);
-          const listaEnderecos = await (await import('../../services/enderecosApi')).listarEnderecos(token);
-          setEnderecos(listaEnderecos || []);
-          console.log('Residentes carregados (modal grupo):', listaResidentes);
-          console.log('Endereços carregados (modal grupo):', listaEnderecos);
-        }
-      } catch (e) {
-        toast.error('Erro ao carregar residentes ou endereços para o grupo!');
-      }
-    }
-    fetchDataGrupo();
-  }
-}, [modalGrupoAberto, token]);
-
-  // Carregar residentes e endereços ao abrir modal
-  useEffect(() => {
-    if (modalAberto) {
-      async function fetchData() {
-        try {
-          if (token) {
-            const listaResidentes = await (await import('../../services/recantoApi')).listarResidentes(token);
-            setResidentes(listaResidentes || []);
-            const listaEnderecos = await (await import('../../services/enderecosApi')).listarEnderecos(token);
-            setEnderecos(listaEnderecos || []);
-            console.log('Residentes carregados (modal grupo):', listaResidentes);
-            console.log('Endereços carregados (modal grupo):', listaEnderecos);
-          }
-        } catch (e) {
-          toast.error('Erro ao carregar residentes ou endereços!');
-        }
-      }
-      fetchData();
-    }
-  }, [modalAberto, token]);
+  const residentesOptions = residentes.map(r => ({ id: r.id, label: r.name || "" }));
+  const enderecosOptions = enderecos.map(e => ({ id: e.id, label: e.adress || "" }));
 
   useEffect(() => {
     if (!modalAberto || !endereco || !enderecos.length) return;
@@ -285,23 +262,9 @@ export default function Pagamentos() {
 
       // ...já declarado no início do componente...
 
-      // Carregar pagamentos (mock inicial)
       async function carregarPagamentos() {
-        setCarregando(true);
-        try {
-          const lista = await listarPagamentos(token || "");
-          setPagamentos(lista || []);
-          console.log('LOG lista de pagamentos (list4):', lista);
-        } catch (e) {
-          toast.error("Erro ao carregar pagamentos!");
-        } finally {
-          setCarregando(false);
-        }
+        await recarregarPagamentos();
       }
-
-      useEffect(() => {
-        carregarPagamentos();
-      }, []);
 
       // Abrir modal novo
       function abrirModalNovo() {
@@ -466,15 +429,15 @@ export default function Pagamentos() {
             doc.text(String(value), localPosX + 8 + labelWidth + space1mm, y, { baseline: 'top' });
             y += 7;
           };
-          addField('TÍTULO', recibo.title || '-');
-          if (recibo.dueDate) addField('VENCIMENTO', formatarDataBarra(recibo.dueDate));
+          addField('TÍTULO', String(recibo.title || '-'));
+          if (recibo.dueDate) addField('VENCIMENTO', formatarDataBarra(String(recibo.dueDate)));
           addField('VALOR', 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
           addField('TIPO PAGAMENTO', modePaymentReturn(recibo.modePayment));
-          addField('DATA ABERTURA', formatarDataBarra(recibo.datePayment));
+          addField('DATA ABERTURA', formatarDataBarra(String(recibo.datePayment || '')));
           addField('SITUAÇÃO', situationReturn(recibo.situation));
-          addField('DATA FECHAMENTO', formatarDataBarra(recibo.finishPayment));
-          addField('NOME', recibo.personName || '-');
-          addField('ENDEREÇO', recibo.adress || '-');
+          addField('DATA FECHAMENTO', formatarDataBarra(String(recibo.finishPayment || '')));
+          addField('NOME', String(recibo.personName || '-'));
+          addField('ENDEREÇO', resolverEnderecoCanonico(recibo, enderecos));
           if (recibo.obs) addField('OBSERVAÇÕES', String(recibo.obs));
           doc.setFontSize(8);
           doc.setTextColor(80, 80, 200);
@@ -516,49 +479,29 @@ export default function Pagamentos() {
     if (partes.length !== 3) return null;
     return new Date(Number(partes[2]), Number(partes[1]) - 1, Number(partes[0]), 12, 0, 0, 0);
   }
-  const [pagamentosFiltrados, setPagamentosFiltrados] = useState<any[]>([]);
-  useEffect(() => {
-    const termo = busca.toLowerCase();
-    // Converter selects para datas reais
-    const dataInicioFiltro = new Date(Number(anoInicial), Number(mesInicial) - 1, 1, 0, 0, 0, 0);
-    // Último dia do mês selecionado
-    const ultimoDia = new Date(Number(anoFinal), Number(mesFinal), 0, 23, 59, 59, 999);
-    const dataFimFiltro = ultimoDia;
-
-    const novaLista = pagamentos.filter((pagamento) => {
-      // datePayment pode vir como yyyy-MM-dd ou yyyy-MM-ddTHH:mm:ss
-      let dataPag: Date | null = null;
-      if (pagamento.datePayment) {
-        // Pega só a parte da data
-        const dataStr = String(pagamento.datePayment).split('T')[0];
-        let ano, mes, dia;
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) {
-          // yyyy-MM-dd
-          [ano, mes, dia] = dataStr.split('-');
-        } else if (/^\d{2}-\d{2}-\d{4}$/.test(dataStr)) {
-          // dd-MM-yyyy
-          [dia, mes, ano] = dataStr.split('-');
-        }
-        if (ano && mes && dia) {
-          dataPag = new Date(Number(ano), Number(mes) - 1, Number(dia), 12, 0, 0, 0);
-        }
-      }
-      if (!dataPag) return false;
-      if (dataPag < dataInicioFiltro || dataPag > dataFimFiltro) return false;
-      const textoOk =
-        !termo ||
-        pagamento.title?.toLowerCase().includes(termo) ||
-        pagamento.personName?.toLowerCase().includes(termo);
-      let situacaoOk = true;
-      if (situacaoFiltro === '0') {
-        situacaoOk = String(pagamento.situation) === '0';
-      } else if (situacaoFiltro === '1') {
-        situacaoOk = String(pagamento.situation) === '1';
-      }
-      return textoOk && situacaoOk;
-    });
-    setPagamentosFiltrados(novaLista);
-  }, [pagamentos, mesInicial, anoInicial, busca, situacaoFiltro]);
+  // Filtragem coerente (periodo + residente + busca + situacao)
+  const pagamentosFiltrados = useMemo(() => {
+    let lista = filtrarPorResidente(pagamentos, residentIdFiltro);
+    lista = filtrarPagamentosPorPeriodo(
+      lista,
+      mesInicial,
+      anoInicial,
+      mesFinal,
+      anoFinal
+    );
+    lista = filtrarPorBusca(lista, busca, ["title", "personName"]);
+    lista = filtrarPorSituacao(lista, situacaoFiltro);
+    return lista;
+  }, [
+    pagamentos,
+    residentIdFiltro,
+    mesInicial,
+    anoInicial,
+    mesFinal,
+    anoFinal,
+    busca,
+    situacaoFiltro,
+  ]);
 
   // Cálculo do demonstrativo DRE (deve vir após pagamentosFiltrados)
   const totalRecebido = pagamentosFiltrados.filter(p => p.situation === 1).reduce((acc, p) => acc + Number(p.cash || 0), 0);
@@ -588,6 +531,14 @@ export default function Pagamentos() {
       <header className="mb-6">
         {/* Removido bloco de associação em duas linhas */}
         <h1 className="page-title mb-2">Pagamentos</h1>
+        {residentIdFiltro ? (
+          <p className="mb-3 rounded-lg border border-[var(--rc-border)] bg-[var(--rc-surface-soft)] px-3 py-2 text-sm text-[var(--rc-primary)]">
+            Filtrando pelo residente #{residentIdFiltro}.{" "}
+            <a href="/pagamentos" className="font-bold underline">
+              Limpar filtro
+            </a>
+          </p>
+        ) : null}
         <section className="surface-card p-4 mb-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             {/* Filtros de data inicial/final */}
@@ -698,7 +649,7 @@ export default function Pagamentos() {
                       <div className="break-words"><b className="text-black">DATA FECHAMENTO:</b> <span className="text-black">{formatarDataParaTela(recibo.finishPayment)}</span></div>
                       <div className="break-words"><b className="text-black">SITUAÇÃO:</b> <span className="text-black">{situationReturn(recibo.situation)}</span></div>
                       <div className="break-words"><b className="text-black">NOME:</b> <span className="text-black">{recibo.personName || '-'}</span></div>
-                      <div className="break-words"><b className="text-black">ENDEREÇO:</b> <span className="text-black">{recibo.adress || '-'}</span></div>
+                      <div className="break-words"><b className="text-black">ENDEREÇO:</b> <span className="text-black">{resolverEnderecoCanonico(recibo, enderecos)}</span></div>
                       <div className="break-words"><b className="text-black">OBSERVAÇÕES:</b> <span className="text-black">{recibo.obs || '-'}</span></div>
                       <div className="text-xs text-black mt-3">ID: {recibo.id}</div>
                     </div>
@@ -1022,7 +973,7 @@ export default function Pagamentos() {
                       addField('SITUAÇÃO', situationReturn(pagamentoRecibo.situation));
                       addField('DATA FECHAMENTO', formatarDataBarra(pagamentoRecibo.finishPayment));
                       addField('NOME', pagamentoRecibo.personName || '-');
-                      addField('ENDEREÇO', pagamentoRecibo.adress || '-');
+                      addField('ENDEREÇO', resolverEnderecoCanonico(pagamentoRecibo, enderecos));
                       if (pagamentoRecibo.obs) addField('OBSERVAÇÕES', String(pagamentoRecibo.obs));
                       doc.setFontSize(8);
                       doc.setTextColor(80, 80, 200);
@@ -1042,7 +993,7 @@ export default function Pagamentos() {
                   <div><b>DATA FECHAMENTO:</b> {formatarDataParaTela(pagamentoRecibo.finishPayment)}</div>
                   <div><b>SITUAÇÃO:</b> {situationReturn(pagamentoRecibo.situation)}</div>
                   <div><b>NOME:</b> {pagamentoRecibo.personName || '-'}</div>
-                  <div><b>ENDEREÇO:</b> {pagamentoRecibo.adress || '-'}</div>
+                  <div><b>ENDEREÇO:</b> {resolverEnderecoCanonico(pagamentoRecibo, enderecos)}</div>
                   <div><b>OBSERVAÇÕES:</b> {pagamentoRecibo.obs || '-'}</div>
                   <div className="text-xs text-gray-400 mt-2">ID: {pagamentoRecibo.id}</div>
                 </div>

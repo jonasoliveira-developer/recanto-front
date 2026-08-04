@@ -1,62 +1,46 @@
 "use client";
-import { useEffect, useState } from "react";
-import { listarOcorrencias, removerOcorrencia, criarOcorrencia, atualizarOcorrencia } from "../../services/ocorrenciasApi";
-import { useAuth, UserRole, hasRole } from "../../context/AuthContext";
-import { Modal } from "../../components/Modal";
-import { Paginacao } from "../../components/Paginacao";
 
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  removerOcorrencia,
+  criarOcorrencia,
+  atualizarOcorrencia,
+} from "@/services/ocorrenciasApi";
+import { useAuth } from "@/context/AuthContext";
+import { Modal } from "@/components/Modal";
+import { Paginacao } from "@/components/Paginacao";
+import { useOcorrencias } from "@/hooks/useOcorrencias";
+import { filtrarPorBusca, filtrarPorResidente, paginarLista } from "@/lib/filtros";
 
-export default function Ocorrencias() {
-  const [ocorrencias, definirOcorrencias] = useState<any[]>([]);
+function OcorrenciasClient() {
+  const searchParams = useSearchParams();
+  const residentIdFiltro = searchParams.get("residentId");
+  const { ocorrencias, carregando, recarregar } = useOcorrencias();
   const [modalAberto, definirModalAberto] = useState(false);
-  const [carregando, definirCarregando] = useState(false);
   const [busca, definirBusca] = useState("");
   const [paginaAtual, definirPaginaAtual] = useState(1);
   const itensPorPagina = 10;
-  const { usuario, token } = useAuth();
-  // Formulário de criação/edição
+  const { token } = useAuth();
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [situacao, setSituacao] = useState("");
   const [editando, setEditando] = useState<any | null>(null);
-  // Busca o id do usuário logado do localStorage
-  const usuarioId = typeof window !== "undefined" ? localStorage.getItem("id") : null;
-  const usuarioNome = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  const usuarioId =
+    typeof window !== "undefined" ? localStorage.getItem("id") : null;
+  const usuarioNome =
+    typeof window !== "undefined" ? localStorage.getItem("user") : null;
 
-  useEffect(() => {
-    async function carregarOcorrencias() {
-      definirCarregando(true);
-      try {
-        if (!token) {
-          definirOcorrencias([]);
-          definirCarregando(false);
-          return;
-        }
-        const dados = await listarOcorrencias(token);
-        definirOcorrencias(dados);
-      } catch {
-        definirOcorrencias([]);
-      }
-      definirCarregando(false);
-    }
-    carregarOcorrencias();
-  }, [token]);
+  const ocorrenciasFiltradas = useMemo(() => {
+    let lista = filtrarPorResidente(ocorrencias, residentIdFiltro);
+    return filtrarPorBusca(lista, busca, ["title", "description", "situation"]);
+  }, [ocorrencias, busca, residentIdFiltro]);
 
-  // Filtragem por busca
-    const ocorrenciasFiltradas = ocorrencias.filter((ocorrencia) => {
-      const termo = busca.toLowerCase();
-      return (
-        (typeof ocorrencia.title === 'string' && ocorrencia.title.toLowerCase().includes(termo)) ||
-        (typeof ocorrencia.description === 'string' && ocorrencia.description.toLowerCase().includes(termo)) ||
-        (typeof ocorrencia.situation === 'string' && ocorrencia.situation.toLowerCase().includes(termo))
-      );
-    });
-
-  // Paginação
-  const totalPaginas = Math.ceil(ocorrenciasFiltradas.length / itensPorPagina);
-  const inicio = (paginaAtual - 1) * itensPorPagina;
-  const fim = inicio + itensPorPagina;
-  const ocorrenciasPaginadas = ocorrenciasFiltradas.slice(inicio, fim);
+  const { itens: ocorrenciasPaginadas, totalPaginas } = paginarLista(
+    ocorrenciasFiltradas,
+    paginaAtual,
+    itensPorPagina
+  );
 
   function aoMudarPagina(novaPagina: number) {
     definirPaginaAtual(novaPagina);
@@ -65,6 +49,38 @@ export default function Ocorrencias() {
   function aoBuscar(e: React.ChangeEvent<HTMLInputElement>) {
     definirBusca(e.target.value);
     definirPaginaAtual(1);
+  }
+
+  async function aoSalvar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token) return;
+    const person = residentIdFiltro
+      ? Number(residentIdFiltro)
+      : usuarioId
+        ? Number(usuarioId)
+        : undefined;
+    const payload = {
+      title: titulo,
+      description: descricao,
+      situation: situacao,
+      person,
+      personName: usuarioNome,
+    };
+    try {
+      if (editando) {
+        await atualizarOcorrencia(editando.id, payload, token);
+      } else {
+        await criarOcorrencia(payload, token);
+      }
+      await recarregar();
+      definirModalAberto(false);
+      setEditando(null);
+      setTitulo("");
+      setDescricao("");
+      setSituacao("");
+    } catch {
+      alert("Erro ao salvar ocorrência");
+    }
   }
 
   return (
@@ -78,147 +94,128 @@ export default function Ocorrencias() {
             onChange={aoBuscar}
             placeholder="Buscar por título, descrição ou situação"
             className="input-base w-full md:max-w-full md:flex-1 min-w-0"
-            style={{ minWidth: 0 }}
           />
           <button
-            className="btn btn-primary md:ml-2 w-full md:w-auto"
-            style={{ minWidth: '140px' }}
-            onClick={() => definirModalAberto(true)}
-          >
-            Nova ocorrência
-          </button>
-        </div>
-      </header>
-      <section className="surface-card p-4">
-        {carregando ? (
-          <p className="text-center text-[var(--rc-muted)]">Carregando...</p>
-        ) : ocorrenciasFiltradas.length === 0 ? (
-          <p className="text-center text-[var(--rc-muted)]">Nenhuma ocorrencia encontrada.</p>
-        ) : (
-          <>
-            <ul className="grid gap-4 sm:grid-cols-1 md:grid-cols-1 max-w-4xl w-full mx-auto">
-              {ocorrenciasPaginadas.map((ocorrencia) => (
-                <li key={ocorrencia.id} className="surface-card p-6 transition-colors duration-200 hover:bg-[var(--rc-surface-soft)] cursor-pointer w-full h-full min-h-[260px] flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-4">
-                    {ocorrencia.situation === 'ABERTO' || ocorrencia.situation === 0 ? (
-                      <span className="text-xs font-bold uppercase tracking-wider text-yellow-700 bg-yellow-100 px-2 py-1 rounded">
-                        Aberto
-                      </span>
-                    ) : ocorrencia.situation === 'FECHADO' || ocorrencia.situation === 1 ? (
-                      <span className="text-xs font-bold uppercase tracking-wider text-red-700 bg-red-100 px-2 py-1 rounded">
-                        Fechado
-                      </span>
-                    ) : (
-                      <span className="text-xs font-bold uppercase tracking-wider px-2 py-1 rounded">
-                        {ocorrencia.situation}
-                      </span>
-                    )}
-                  </div>
-                  <h2 className="text-2xl font-bold text-[var(--rc-primary-strong)] mb-4">{ocorrencia.title}</h2>
-                  <p className="text-base text-gray-700 mb-8">{ocorrencia.description}</p>
-                  <div className="flex justify-end gap-4 mt-4">
-                    <>
-                      <button
-                        className="btn btn-secondary !min-h-[38px] px-4 py-2 text-sm"
-                        onClick={() => {
-                          setEditando(ocorrencia);
-                          setTitulo(ocorrencia.title || "");
-                          setDescricao(ocorrencia.description || "");
-                          setSituacao(ocorrencia.situation || "");
-                          definirModalAberto(true);
-                        }}
-                      >Editar</button>
-                      <button
-                        className="btn btn-danger !min-h-[38px] px-4 py-2 text-sm"
-                        onClick={async () => {
-                          if (window.confirm("Tem certeza que deseja excluir esta ocorrência?")) {
-                            try {
-                              await removerOcorrencia(ocorrencia.id, token || "");
-                              definirOcorrencias((prev: any[]) => prev.filter(o => o.id !== ocorrencia.id));
-                            } catch (erro) {
-                              alert("Erro ao excluir ocorrência!");
-                            }
-                          }
-                        }}
-                      >Excluir</button>
-                    </>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <Paginacao
-              paginaAtual={paginaAtual}
-              totalPaginas={totalPaginas}
-              aoMudar={aoMudarPagina}
-            />
-          </>
-        )}
-      </section>
-      <Modal aberto={modalAberto} aoFechar={() => {definirModalAberto(false); setEditando(null); setTitulo(""); setDescricao(""); setSituacao("");}} titulo={editando ? "Editar ocorrência" : "Cadastrar ocorrência"}>
-        <form className="flex flex-col gap-3" onSubmit={async (e) => {
-          e.preventDefault();
-          if (!token || !usuarioId) return;
-          // Converte situação para número
-          const situationValue = situacao === 'ABERTO' ? 0 : situacao === 'FECHADO' ? 1 : situacao;
-          if (editando) {
-            // Atualizar ocorrência
-            const occurrence = {
-              id: editando.id,
-              title: titulo,
-              description: descricao,
-              situation: situationValue,
-              person: usuarioId,
-              personName: usuarioNome,
-              openDate: editando.openDate,
-              finishDate: editando.finishDate
-            };
-            try {
-              await atualizarOcorrencia(editando.id, occurrence, token);
-              definirModalAberto(false);
+            className="btn btn-primary"
+            onClick={() => {
               setEditando(null);
               setTitulo("");
               setDescricao("");
               setSituacao("");
-              // Atualiza lista após editar
-              const dados = await listarOcorrencias(token);
-              definirOcorrencias(dados);
-              alert("Ocorrência atualizada com sucesso!");
-            } catch (erro) {
-              alert("Erro ao atualizar ocorrência!");
-            }
-          } else {
-            // Criar ocorrência
-            const occurrence = {
-              title: titulo,
-              description: descricao,
-              situation: situationValue,
-              person: { id: usuarioId }
-            };
-            try {
-              await criarOcorrencia(occurrence, token);
-              definirModalAberto(false);
-              setTitulo("");
-              setDescricao("");
-              setSituacao("");
-              // Atualiza lista após criar
-              const dados = await listarOcorrencias(token);
-              definirOcorrencias(dados);
-              alert("Ocorrência criada com sucesso!");
-            } catch (erro) {
-              alert("Erro ao criar ocorrência!");
-            }
-          }
-        }}>
-          <input className="rounded border px-3 py-2" placeholder="Título" value={titulo} onChange={e => setTitulo(e.target.value)} />
-          <input className="rounded border px-3 py-2" placeholder="Descrição" value={descricao} onChange={e => setDescricao(e.target.value)} />
-          <select className="rounded border px-3 py-2" value={situacao} onChange={e => setSituacao(e.target.value)} required>
-            <option value="">Selecione a situação</option>
-            <option value="ABERTO">Aberto</option>
-            <option value="FECHADO">Fechado</option>
-          </select>
-          <button type="submit" className="rounded bg-yellow-600 px-4 py-2 text-white hover:bg-yellow-700">{editando ? "Atualizar" : "Criar"}</button>
+              definirModalAberto(true);
+            }}
+          >
+            Nova ocorrencia
+          </button>
+        </div>
+      </header>
+      {residentIdFiltro ? (
+        <p className="mb-3 rounded-lg border border-[var(--rc-border)] bg-[var(--rc-surface-soft)] px-3 py-2 text-sm text-[var(--rc-primary)]">
+          Filtrando pelo residente #{residentIdFiltro}.{" "}
+          <a href="/ocorrencias" className="font-bold underline">
+            Limpar filtro
+          </a>
+        </p>
+      ) : null}
+      <section className="surface-card p-4">
+        {carregando ? (
+          <div className="flex flex-col items-center gap-2 py-8">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rc-border)] border-t-[var(--rc-primary)]" />
+            <p className="splash-aguardando text-sm text-[var(--rc-muted)]">
+              Carregando…
+            </p>
+          </div>
+        ) : ocorrenciasFiltradas.length === 0 ? (
+          <p className="text-center text-[var(--rc-muted)]">
+            Nenhuma ocorrencia encontrada.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {ocorrenciasPaginadas.map((o) => (
+              <li key={o.id} className="surface-card p-4">
+                <h2 className="font-semibold text-[var(--rc-primary-strong)]">
+                  {o.title}
+                </h2>
+                <p className="text-sm text-[var(--rc-muted)]">{o.description}</p>
+                <p className="text-xs text-[var(--rc-muted)]">
+                  Situação: {String(o.situation ?? "—")}
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    className="btn btn-secondary !min-h-[36px] px-3 py-1 text-sm"
+                    onClick={() => {
+                      setEditando(o);
+                      setTitulo(o.title || "");
+                      setDescricao(String(o.description || ""));
+                      setSituacao(String(o.situation ?? ""));
+                      definirModalAberto(true);
+                    }}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className="btn btn-danger !min-h-[36px] px-3 py-1 text-sm"
+                    onClick={async () => {
+                      if (!token) return;
+                      if (!window.confirm("Excluir ocorrência?")) return;
+                      await removerOcorrencia(o.id, token);
+                      await recarregar();
+                    }}
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Paginacao
+          paginaAtual={paginaAtual}
+          totalPaginas={totalPaginas}
+          aoMudar={aoMudarPagina}
+        />
+      </section>
+      <Modal
+        aberto={modalAberto}
+        aoFechar={() => {
+          definirModalAberto(false);
+          setEditando(null);
+        }}
+        titulo={editando ? "Editar ocorrencia" : "Nova ocorrencia"}
+      >
+        <form className="flex flex-col gap-3" onSubmit={aoSalvar}>
+          <input
+            className="input-base"
+            placeholder="Título"
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
+            required
+          />
+          <input
+            className="input-base"
+            placeholder="Descrição"
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
+          />
+          <input
+            className="input-base"
+            placeholder="Situação"
+            value={situacao}
+            onChange={(e) => setSituacao(e.target.value)}
+          />
+          <button type="submit" className="btn btn-primary">
+            Salvar
+          </button>
         </form>
       </Modal>
     </div>
+  );
+}
+
+export default function Ocorrencias() {
+  return (
+    <Suspense fallback={<p className="p-8 text-center text-[var(--rc-muted)]">Carregando…</p>}>
+      <OcorrenciasClient />
+    </Suspense>
   );
 }

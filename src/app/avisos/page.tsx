@@ -1,55 +1,41 @@
 "use client";
-import { useEffect, useState } from "react";
-import { listarAvisos, atualizarAviso, removerAviso, criarAviso } from "../../services/avisosApi";
-import { useAuth, UserRole, hasRole } from "../../context/AuthContext";
-import { Modal } from "../../components/Modal";
-import { Paginacao } from "../../components/Paginacao";
 
-export default function Avisos() {
-  const [avisos, definirAvisos] = useState<any[]>([]);
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { atualizarAviso, removerAviso, criarAviso } from "@/services/avisosApi";
+import { useAuth } from "@/context/AuthContext";
+import { Modal } from "@/components/Modal";
+import { Paginacao } from "@/components/Paginacao";
+import { useAvisos } from "@/hooks/useAvisos";
+import { filtrarPorBusca, filtrarPorResidente, paginarLista } from "@/lib/filtros";
+
+function AvisosClient() {
+  const searchParams = useSearchParams();
+  const residentIdFiltro = searchParams.get("residentId");
+  const { avisos, carregando, recarregar } = useAvisos();
   const [modalAberto, definirModalAberto] = useState(false);
-  const [carregando, definirCarregando] = useState(false);
   const [busca, definirBusca] = useState("");
   const [paginaAtual, definirPaginaAtual] = useState(1);
   const [editando, setEditando] = useState<any | null>(null);
-  const [form, setForm] = useState({ title: "", description: "", personName: "", openDate: "" });
-  const itensPorPagina = 10;
-  const { usuario, token } = useAuth();
-
-  useEffect(() => {
-    async function carregarAvisos() {
-      definirCarregando(true);
-      try {
-        if (!token) {
-          definirAvisos([]);
-          definirCarregando(false);
-          return;
-        }
-        const dados = await listarAvisos(token);
-        definirAvisos(dados);
-      } catch {
-        definirAvisos([]);
-      }
-      definirCarregando(false);
-    }
-    carregarAvisos();
-  }, [token]);
-
-  // Filtragem por busca
-  const avisosFiltrados = avisos.filter((aviso) => {
-    const termo = busca.toLowerCase();
-    return (
-      aviso.title?.toLowerCase().includes(termo) ||
-      aviso.description?.toLowerCase().includes(termo) ||
-      aviso.personName?.toLowerCase().includes(termo)
-    );
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    personName: "",
+    openDate: "",
   });
+  const itensPorPagina = 10;
+  const { token } = useAuth();
 
-  // Paginação
-  const totalPaginas = Math.ceil(avisosFiltrados.length / itensPorPagina);
-  const inicio = (paginaAtual - 1) * itensPorPagina;
-  const fim = inicio + itensPorPagina;
-  const avisosPaginados = avisosFiltrados.slice(inicio, fim);
+  const avisosFiltrados = useMemo(() => {
+    let lista = filtrarPorResidente(avisos, residentIdFiltro);
+    return filtrarPorBusca(lista, busca, ["title", "description", "personName"]);
+  }, [avisos, busca, residentIdFiltro]);
+
+  const { itens: avisosPaginados, totalPaginas } = paginarLista(
+    avisosFiltrados,
+    paginaAtual,
+    itensPorPagina
+  );
 
   function aoMudarPagina(novaPagina: number) {
     definirPaginaAtual(novaPagina);
@@ -70,8 +56,8 @@ export default function Avisos() {
     if (!data) return "";
     const d = new Date(data);
     if (isNaN(d.getTime())) return data;
-    const dia = String(d.getDate()).padStart(2, '0');
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, "0");
+    const mes = String(d.getMonth() + 1).padStart(2, "0");
     const ano = d.getFullYear();
     return `${dia}/${mes}/${ano}`;
   }
@@ -82,20 +68,27 @@ export default function Avisos() {
       title: aviso.title || "",
       description: aviso.description || "",
       personName: aviso.personName || "",
-      openDate: formatarData(aviso.openDate)
+      openDate: formatarData(aviso.openDate),
     });
     definirModalAberto(true);
   }
 
   function aoMudarForm(e: React.ChangeEvent<HTMLInputElement>) {
-    setForm({ ...form, [e.target.placeholder === "Data de abertura" ? "openDate" : e.target.placeholder === "Título" ? "title" : e.target.placeholder === "Descrição" ? "description" : "personName"]: e.target.value });
+    const campo =
+      e.target.placeholder === "Data de abertura"
+        ? "openDate"
+        : e.target.placeholder === "Título"
+          ? "title"
+          : e.target.placeholder === "Descrição"
+            ? "description"
+            : "personName";
+    setForm({ ...form, [campo]: e.target.value });
   }
-
 
   async function aoExcluir(avisoId: number) {
     if (!token) return;
     await removerAviso(avisoId, token);
-    definirAvisos((avisos) => avisos.filter(a => a.id !== avisoId));
+    await recarregar();
   }
 
   async function aoSalvar(e: React.FormEvent) {
@@ -105,70 +98,62 @@ export default function Avisos() {
       setEditando(null);
       return;
     }
-    if (editando) {
-      // Editar aviso existente
-      const id = localStorage.getItem("id");
-      const userName = localStorage.getItem("user");
-      const hoje = new Date();
-      const dia = String(hoje.getDate()).padStart(2, '0');
-      const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-      const ano = hoje.getFullYear();
-      const dateOpen = `${dia}/${mes}/${ano}`;
-      const avisoEditado = {
-        ...form,
-        person: id ? Number(id) : undefined,
-        personName: userName,
-        dateOpen
-      };
-      await atualizarAviso(editando.id, avisoEditado, token);
-      definirAvisos((avisos) => avisos.map(a => a.id === editando.id ? { ...a, ...avisoEditado } : a));
-      definirModalAberto(false);
-      setEditando(null);
-      return;
-    }
-    // Criar novo aviso
     const id = localStorage.getItem("id");
     const userName = localStorage.getItem("user");
     const hoje = new Date();
-    const dia = String(hoje.getDate()).padStart(2, '0');
-    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, "0");
+    const mes = String(hoje.getMonth() + 1).padStart(2, "0");
     const ano = hoje.getFullYear();
     const dateOpen = `${dia}/${mes}/${ano}`;
-    const novoAviso = {
+    const payload = {
       ...form,
-      person: id ? Number(id) : undefined,
+      person: residentIdFiltro
+        ? Number(residentIdFiltro)
+        : id
+          ? Number(id)
+          : undefined,
       personName: userName,
-      dateOpen
+      dateOpen,
     };
     try {
-      const avisoCriado = await criarAviso(novoAviso, token);
-      definirAvisos((avisos) => [avisoCriado, ...avisos]);
+      if (editando) {
+        await atualizarAviso(editando.id, payload, token);
+      } else {
+        await criarAviso(payload, token);
+      }
+      await recarregar();
       definirModalAberto(false);
       setEditando(null);
     } catch (error: any) {
       if (error?.response?.data?.errors) {
-        error.response.data.errors.forEach((e: any) => {
-          alert(e.message);
-        });
+        error.response.data.errors.forEach((err: any) => alert(err.message));
       } else {
-        alert(error?.response?.data?.message || "Erro ao criar aviso");
+        alert(error?.response?.data?.message || "Erro ao salvar aviso");
       }
-      console.error(error);
     }
   }
 
   return (
     <div className="page-shell">
       <header className="page-header w-full max-w-xl mx-auto">
-        <h1 className="page-title w-full sm:w-auto text-center sm:text-left">Avisos</h1>
+        <h1 className="page-title w-full sm:w-auto text-center sm:text-left">
+          Avisos
+        </h1>
         <button
           className="btn btn-primary w-full sm:w-auto"
-          style={{ minWidth: 0 }}
           onClick={abrirModalNovo}
         >
           Novo aviso
         </button>
       </header>
+      {residentIdFiltro ? (
+        <p className="mx-auto mb-3 max-w-xl rounded-lg border border-[var(--rc-border)] bg-[var(--rc-surface-soft)] px-3 py-2 text-sm text-[var(--rc-primary)]">
+          Filtrando pelo residente #{residentIdFiltro}.{" "}
+          <a href="/avisos" className="font-bold underline">
+            Limpar filtro
+          </a>
+        </p>
+      ) : null}
       <div className="mb-4 flex justify-end w-full max-w-xl mx-auto">
         <input
           type="text"
@@ -180,20 +165,43 @@ export default function Avisos() {
       </div>
       <section className="surface-card p-4 w-full max-w-xl mx-auto">
         {carregando ? (
-          <p className="text-center text-[var(--rc-muted)]">Carregando...</p>
+          <div className="flex flex-col items-center gap-2 py-8">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--rc-border)] border-t-[var(--rc-primary)]" />
+            <p className="splash-aguardando text-sm text-[var(--rc-muted)]">
+              Carregando…
+            </p>
+          </div>
         ) : avisosFiltrados.length === 0 ? (
-          <p className="text-center text-[var(--rc-muted)]">Nenhum aviso encontrado.</p>
+          <p className="text-center text-[var(--rc-muted)]">
+            Nenhum aviso encontrado.
+          </p>
         ) : (
           <>
             <ul className="flex flex-col gap-4 w-full">
               {avisosPaginados.map((aviso) => (
                 <li key={aviso.id} className="surface-card p-4 w-full">
-                  <h2 className="text-lg font-semibold text-[var(--rc-primary-strong)]">{aviso.title}</h2>
-                  <p className="text-sm text-[var(--rc-muted)]">{aviso.description}</p>
-                  <p className="text-sm text-[var(--rc-muted)]">Autor: {aviso.personName}</p>
+                  <h2 className="text-lg font-semibold text-[var(--rc-primary-strong)]">
+                    {aviso.title}
+                  </h2>
+                  <p className="text-sm text-[var(--rc-muted)]">
+                    {aviso.description}
+                  </p>
+                  <p className="text-sm text-[var(--rc-muted)]">
+                    Autor: {aviso.personName}
+                  </p>
                   <div className="flex gap-2 mt-2">
-                    <button className="btn btn-secondary !min-h-[36px] px-3 py-1 text-sm" onClick={() => abrirModalEditar(aviso)}>Editar</button>
-                    <button className="btn btn-danger !min-h-[36px] px-3 py-1 text-sm" onClick={() => aoExcluir(aviso.id)}>Excluir</button>
+                    <button
+                      className="btn btn-secondary !min-h-[36px] px-3 py-1 text-sm"
+                      onClick={() => abrirModalEditar(aviso)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      className="btn btn-danger !min-h-[36px] px-3 py-1 text-sm"
+                      onClick={() => aoExcluir(aviso.id)}
+                    >
+                      Excluir
+                    </button>
                   </div>
                 </li>
               ))}
@@ -206,13 +214,44 @@ export default function Avisos() {
           </>
         )}
       </section>
-      <Modal aberto={modalAberto} aoFechar={() => { definirModalAberto(false); setEditando(null); }} titulo={editando ? "Editar aviso" : "Cadastrar aviso"}>
+      <Modal
+        aberto={modalAberto}
+        aoFechar={() => {
+          definirModalAberto(false);
+          setEditando(null);
+        }}
+        titulo={editando ? "Editar aviso" : "Cadastrar aviso"}
+      >
         <form className="flex flex-col gap-3" onSubmit={aoSalvar}>
-          <input className="input-base" placeholder="Título" value={form.title} onChange={aoMudarForm} />
-          <input className="input-base" placeholder="Descrição" value={form.description} onChange={aoMudarForm} />
-          <button type="submit" className="btn btn-primary">Salvar</button>
+          <input
+            className="input-base"
+            placeholder="Título"
+            value={form.title}
+            onChange={aoMudarForm}
+          />
+          <input
+            className="input-base"
+            placeholder="Descrição"
+            value={form.description}
+            onChange={aoMudarForm}
+          />
+          <button type="submit" className="btn btn-primary">
+            Salvar
+          </button>
         </form>
       </Modal>
     </div>
+  );
+}
+
+export default function Avisos() {
+  return (
+    <Suspense
+      fallback={
+        <p className="p-8 text-center text-[var(--rc-muted)]">Carregando…</p>
+      }
+    >
+      <AvisosClient />
+    </Suspense>
   );
 }
