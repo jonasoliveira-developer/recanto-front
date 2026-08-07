@@ -56,13 +56,18 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { useRouter } from "next/navigation";
 
 import { autenticarUsuario } from "../services/authApi";
+import {
+  EVENTO_SESSAO_EXPIRADA,
+  limparSessaoLocal,
+  msAteExpirar,
+  tokenEstaExpirado,
+} from "@/lib/token";
 
 interface Usuario {
   email: string;
   perfil?: string;
   id?: string | number;
   roles?: string | string[];
-  // Adicione outros campos conforme necessário
 }
 
 interface AuthContextProps {
@@ -92,26 +97,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return hasRole(usuario, role);
   }
 
+  function limparEstadoAuth() {
+    limparSessaoLocal();
+    definirToken(null);
+    definirUsuario(null);
+  }
+
   useEffect(() => {
     const tokenSalvo = localStorage.getItem("token");
     const idSalvo = localStorage.getItem("id");
     const userSalvo = localStorage.getItem("user");
     const rolesSalvo = localStorage.getItem("roles");
-    if (tokenSalvo) {
+
+    if (tokenSalvo && !tokenEstaExpirado(tokenSalvo)) {
       definirToken(tokenSalvo);
       if (userSalvo) {
-        definirUsuario({ email: userSalvo, id: idSalvo ?? undefined, roles: rolesSalvo ?? undefined });
+        definirUsuario({
+          email: userSalvo,
+          id: idSalvo ?? undefined,
+          roles: rolesSalvo ?? undefined,
+        });
       } else {
         definirUsuario(null);
       }
+    } else if (tokenSalvo) {
+      limparSessaoLocal();
     }
+
     definirCarregandoAuth(false);
   }, []);
 
+  useEffect(() => {
+    function aoSessaoExpirada() {
+      definirToken(null);
+      definirUsuario(null);
+    }
+    window.addEventListener(EVENTO_SESSAO_EXPIRADA, aoSessaoExpirada);
+    return () =>
+      window.removeEventListener(EVENTO_SESSAO_EXPIRADA, aoSessaoExpirada);
+  }, []);
+
+  // Se o token expirar com a aba aberta, força logout
+  useEffect(() => {
+    if (!token) return;
+    if (tokenEstaExpirado(token)) {
+      limparEstadoAuth();
+      router.replace("/login");
+      return;
+    }
+
+    const ms = msAteExpirar(token);
+    if (ms === null) return;
+    if (ms <= 0) {
+      limparEstadoAuth();
+      router.replace("/login");
+      return;
+    }
+
+    const id = window.setTimeout(() => {
+      limparEstadoAuth();
+      router.replace("/login");
+    }, Math.min(ms + 500, 2_147_483_647));
+    return () => window.clearTimeout(id);
+  }, [token, router]);
+
   async function login(email: string, senha: string) {
     const tokenRecebido = await autenticarUsuario(email, senha);
+    if (tokenEstaExpirado(tokenRecebido)) {
+      limparSessaoLocal();
+      throw new Error("Token inválido ou já expirado.");
+    }
     definirToken(tokenRecebido);
-    // Pega dados do localStorage
     const id = localStorage.getItem("id");
     const user = localStorage.getItem("user");
     const roles = localStorage.getItem("roles");
@@ -124,16 +180,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("id");
-    localStorage.removeItem("user");
-    localStorage.removeItem("roles");
-    definirToken(null);
-    definirUsuario(null);
+    limparEstadoAuth();
     router.push("/login");
   }
 
-  const estaAutenticado = !!token;
+  const estaAutenticado = !!token && !tokenEstaExpirado(token);
 
   return (
     <AuthContext.Provider
@@ -144,7 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         estaAutenticado,
         carregandoAuth,
-        temPermissaoEfetiva
+        temPermissaoEfetiva,
       }}
     >
       {children}
