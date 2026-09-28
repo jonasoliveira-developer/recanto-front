@@ -22,6 +22,7 @@ import {
   filtrarPagamentosPorPeriodo,
   resolverEnderecoCanonico,
 } from "@/lib/filtros";
+import { abrirReciboPdf, desenharReciboPdf } from "@/lib/reciboPdf";
 
 export default function Pagamentos() {
   return (
@@ -101,6 +102,28 @@ function PagamentosClient() {
   const residentesOptions = residentes.map(r => ({ id: r.id, label: r.name || "" }));
   const enderecosOptions = enderecos.map(e => ({ id: e.id, label: e.adress || "" }));
 
+  // A API pode devolver `person` do endereço como string e o id do residente como número.
+  const enderecosPorResidente = useMemo(() => {
+    const mapa = new Map<string, typeof enderecos>();
+    for (const e of enderecos) {
+      if (e.person === undefined || e.person === null || e.person === "") continue;
+      const chave = String(e.person);
+      const lista = mapa.get(chave);
+      if (lista) lista.push(e);
+      else mapa.set(chave, [e]);
+    }
+    return mapa;
+  }, [enderecos]);
+
+  const totalRecibosLote = useMemo(
+    () =>
+      residentes.reduce(
+        (soma, r) => soma + Math.max(1, enderecosPorResidente.get(String(r.id))?.length ?? 0),
+        0
+      ),
+    [residentes, enderecosPorResidente]
+  );
+
   useEffect(() => {
     if (!modalAberto || !endereco || !enderecos.length) return;
     const enderecoJaEhId = enderecos.some((item) => String(item.id) === String(endereco));
@@ -110,6 +133,7 @@ function PagamentosClient() {
       setEndereco(String(enderecoCorrespondente.id));
     }
   }, [modalAberto, endereco, enderecos]);
+
             // Função para gerar PDF do DRE
             function gerarPdfDRE() {
               const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -394,6 +418,11 @@ function PagamentosClient() {
           return 'PIX';
         }
 
+      const formatadoresReciboPdf = {
+        formatarDataBarra,
+        modePaymentLabel: returnModePayment,
+        situationLabel: situationReturn,
+      };
 
       function gerarPdfRecibosLote() {
         if (!pagamentosFiltrados.length) {
@@ -401,54 +430,36 @@ function PagamentosClient() {
           return;
         }
         const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-        const reciboWidth = 190;
         const reciboHeight = 90;
-        const espacamento = 8; // Espaço entre recibos
+        const espacamento = 8;
         const localPosX = 10;
         const marginY = 10;
         const recibosPorFolha = 3;
-        
+
         pagamentosFiltrados.forEach((recibo, idx) => {
           const posY = marginY + (idx % recibosPorFolha) * (reciboHeight + espacamento);
-          // Nova página a cada 3 recibos
           if (idx > 0 && idx % recibosPorFolha === 0) doc.addPage();
-          doc.setLineDashPattern([2, 2], 0);
-          doc.setDrawColor(120);
-          doc.roundedRect(localPosX, posY, reciboWidth, reciboHeight, 4, 4, 'S');
-          doc.setLineDashPattern([], 0);
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(11);
-          doc.text('Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã', localPosX + reciboWidth / 2, posY + 8, { align: 'center' });
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(10);
-          let y = posY + 16;
-          const addField = (label: string, value: string) => {
-            doc.text(label + ':', localPosX + 8, y, { baseline: 'top' });
-            const labelWidth = doc.getTextWidth(label + ':');
-            const space1mm = 2.83;
-            doc.text(String(value), localPosX + 8 + labelWidth + space1mm, y, { baseline: 'top' });
-            y += 7;
-          };
-          addField('TÍTULO', String(recibo.title || '-'));
-          if (recibo.dueDate) addField('VENCIMENTO', formatarDataBarra(String(recibo.dueDate)));
-          addField('VALOR', 'R$ ' + Number(recibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-          addField('TIPO PAGAMENTO', modePaymentReturn(recibo.modePayment));
-          addField('DATA ABERTURA', formatarDataBarra(String(recibo.datePayment || '')));
-          addField('SITUAÇÃO', situationReturn(recibo.situation));
-          addField('DATA FECHAMENTO', formatarDataBarra(String(recibo.finishPayment || '')));
-          addField('NOME', String(recibo.personName || '-'));
-          addField('ENDEREÇO', resolverEnderecoCanonico(recibo, enderecos));
-          if (recibo.obs) addField('OBSERVAÇÕES', String(recibo.obs));
-          doc.setFontSize(8);
-          doc.setTextColor(80, 80, 200);
-          doc.text('https://recantodeitapua.com.br', localPosX + 8, posY + reciboHeight - 7);
-          doc.setTextColor(120);
-          doc.setFontSize(7);
-          doc.text('ID: ' + recibo.id, localPosX + reciboWidth - 40, posY + reciboHeight - 7);
-          doc.setFontSize(10);
-          doc.setTextColor(0);
+          desenharReciboPdf(
+            doc,
+            localPosX,
+            posY,
+            {
+              id: recibo.id,
+              title: recibo.title,
+              dueDate: recibo.dueDate,
+              cash: recibo.cash,
+              modePayment: recibo.modePayment,
+              datePayment: recibo.datePayment,
+              situation: recibo.situation,
+              finishPayment: recibo.finishPayment,
+              personName: recibo.personName,
+              endereco: resolverEnderecoCanonico(recibo, enderecos),
+              obs: recibo.obs,
+            },
+            formatadoresReciboPdf
+          );
         });
-        window.open(doc.output('bloburl'), '_blank');
+        abrirReciboPdf(doc);
       }
     // ...estados principais já declarados acima...
 
@@ -719,8 +730,7 @@ function PagamentosClient() {
                   try {
                     let total = 0, erros = 0;
                     for (const residente of residentes) {
-                      // Pega todos os endereços do residente
-                      const enderecosDoResidente = enderecos.filter(e => e.person === residente.id);
+                      const enderecosDoResidente = enderecosPorResidente.get(String(residente.id)) ?? [];
                       if (enderecosDoResidente.length === 0) {
                         // Se não tem endereço, cria um recibo vazio (opcional)
                         const payload = {
@@ -771,7 +781,7 @@ function PagamentosClient() {
                   }
                 }}>
                                   {carregandoGrupo && (
-                                    <p className="text-base text-green-800 font-semibold mb-2">Criados: <b>{criadosLote}</b> de <b>{enderecos.length}</b></p>
+                                    <p className="text-base text-green-800 font-semibold mb-2">Criados: <b>{criadosLote}</b> de <b>{totalRecibosLote}</b></p>
                                   )}
                   <input className="rounded border px-3 py-2 text-base sm:text-lg sm:px-4 sm:py-3 bg-white" placeholder="Título" value={titulo} onChange={e => setTitulo(e.target.value)} required />
                   <select
@@ -944,46 +954,26 @@ function PagamentosClient() {
                     title="Imprimir recibo"
                     onClick={() => {
                       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-                      const reciboWidth = 190;
-                      const reciboHeight = 90;
-                      const localPosX = 10;
-                      const localPosY = 10;
-                      doc.setLineDashPattern([2, 2], 0);
-                      doc.setDrawColor(120);
-                      doc.roundedRect(localPosX, localPosY, reciboWidth, reciboHeight, 4, 4, 'S');
-                      doc.setLineDashPattern([], 0);
-                      doc.setFont('helvetica', 'bold');
-                      doc.setFontSize(11);
-                      doc.text('Associação Comunitária Dos Moradores Do Loteamento Recanto De Itapuã', localPosX + reciboWidth / 2, localPosY + 8, { align: 'center' });
-                      doc.setFont('helvetica', 'normal');
-                      doc.setFontSize(10);
-                      let y = localPosY + 16;
-                      const addField = (label: string, value: string) => {
-                        doc.text(label + ':', localPosX + 8, y, { baseline: 'top' });
-                        const labelWidth = doc.getTextWidth(label + ':');
-                        const space1mm = 2.83;
-                        doc.text(String(value), localPosX + 8 + labelWidth + space1mm, y, { baseline: 'top' });
-                        y += 7;
-                      };
-                      addField('TÍTULO', pagamentoRecibo.title || '-');
-                      if (pagamentoRecibo.dueDate) addField('VENCIMENTO', formatarDataBarra(pagamentoRecibo.dueDate));
-                      addField('VALOR', 'R$ ' + Number(pagamentoRecibo.cash).toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-                      addField('TIPO PAGAMENTO', returnModePayment(pagamentoRecibo.modePayment));
-                      addField('DATA ABERTURA', formatarDataBarra(pagamentoRecibo.datePayment));
-                      addField('SITUAÇÃO', situationReturn(pagamentoRecibo.situation));
-                      addField('DATA FECHAMENTO', formatarDataBarra(pagamentoRecibo.finishPayment));
-                      addField('NOME', pagamentoRecibo.personName || '-');
-                      addField('ENDEREÇO', resolverEnderecoCanonico(pagamentoRecibo, enderecos));
-                      if (pagamentoRecibo.obs) addField('OBSERVAÇÕES', String(pagamentoRecibo.obs));
-                      doc.setFontSize(8);
-                      doc.setTextColor(80, 80, 200);
-                      doc.text('https://recantodeitapua.com.br', localPosX + 8, localPosY + reciboHeight - 7);
-                      doc.setTextColor(120);
-                      doc.setFontSize(7);
-                      doc.text('ID: ' + pagamentoRecibo.id, localPosX + reciboWidth - 40, localPosY + reciboHeight - 7);
-                      doc.setFontSize(10);
-                      doc.setTextColor(0);
-                      window.open(doc.output('bloburl'), '_blank');
+                      desenharReciboPdf(
+                        doc,
+                        10,
+                        10,
+                        {
+                          id: pagamentoRecibo.id,
+                          title: pagamentoRecibo.title,
+                          dueDate: pagamentoRecibo.dueDate,
+                          cash: pagamentoRecibo.cash,
+                          modePayment: pagamentoRecibo.modePayment,
+                          datePayment: pagamentoRecibo.datePayment,
+                          situation: pagamentoRecibo.situation,
+                          finishPayment: pagamentoRecibo.finishPayment,
+                          personName: pagamentoRecibo.personName,
+                          endereco: resolverEnderecoCanonico(pagamentoRecibo, enderecos),
+                          obs: pagamentoRecibo.obs,
+                        },
+                        formatadoresReciboPdf
+                      );
+                      abrirReciboPdf(doc);
                     }}
                   >Imprimir</button>
                   <div><b>TÍTULO:</b> {pagamentoRecibo.title || '-'}</div>
