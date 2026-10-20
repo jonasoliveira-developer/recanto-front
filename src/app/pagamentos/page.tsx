@@ -16,10 +16,10 @@ import { usePagamentos } from "@/hooks/usePagamentos";
 import { useResidentes } from "@/hooks/useResidentes";
 import { useEnderecos } from "@/hooks/useEnderecos";
 import {
-  filtrarPorBusca,
+  dataReferenciaPagamento,
   filtrarPorResidente,
-  filtrarPorSituacao,
-  filtrarPagamentosPorPeriodo,
+  filtrarPagamentosPorAnoMes,
+  filtrarPagamentosPorTexto,
   resolverEnderecoCanonico,
 } from "@/lib/filtros";
 import { abrirReciboPdf, desenharReciboPdf } from "@/lib/reciboPdf";
@@ -68,7 +68,6 @@ function PagamentosClient() {
   const { residentes } = useResidentes();
   const { enderecos } = useEnderecos();
   const [busca, setBusca] = useState<string>("");
-  const [situacaoFiltro, setSituacaoFiltro] = useState<string>("");
   const [paginaAtual, setPaginaAtual] = useState<number>(1);
   const itensPorPagina = 10;
   const [modalAberto, definirModalAberto] = useState<boolean>(false);
@@ -153,7 +152,7 @@ function PagamentosClient() {
               doc.text('Demonstrativo de Resultados (DRE)', pageWidth / 2, y, { align: 'center' });
               y += 7;
               doc.setFontSize(9);
-              doc.text(`Período: ${formatarDataBarra(mesInicial + '-' + anoInicial)} a ${formatarDataBarra(mesFinal + '-' + anoFinal)}`, marginX, y);
+              doc.text(`Período: ${rotuloPeriodo}`, marginX, y);
               doc.text(`Emitido em: ${dayjs().format('DD/MM/YYYY HH:mm')}`, pageWidth - marginX, y, { align: 'right' });
               y += 7;
               // Resumo
@@ -236,7 +235,7 @@ function PagamentosClient() {
                   doc.text('Demonstrativo de Resultados (DRE)', pageWidth / 2, y, { align: 'center' });
                   y += 7;
                   doc.setFontSize(9);
-                  doc.text(`Período: ${formatarDataBarra(mesInicial + '-' + anoInicial)} a ${formatarDataBarra(mesFinal + '-' + anoFinal)}`, marginX, y);
+                  doc.text(`Período: ${rotuloPeriodo}`, marginX, y);
                   doc.text(`Emitido em: ${dayjs().format('DD/MM/YYYY HH:mm')}`, pageWidth - marginX, y, { align: 'right' });
                   y += 7;
                   doc.setFontSize(10);
@@ -257,7 +256,7 @@ function PagamentosClient() {
             }
           // Estado para modal DRE
           const [modalDREAberto, setModalDREAberto] = useState(false);
-        // Filtros de data inicial/final (mês/ano)
+        // Filtros: ano + mês de referência + busca por texto
         const meses = [
           { value: '01', label: 'Janeiro' },
           { value: '02', label: 'Fevereiro' },
@@ -273,16 +272,10 @@ function PagamentosClient() {
           { value: '12', label: 'Dezembro' },
         ];
         const anoAtual = new Date().getFullYear();
-        const anos = Array.from({ length: 11 }, (_, i) => anoAtual - 5 + i);
-        // Estado dos selects de filtro
-        // Data inicial: primeiro dia do mês atual
-        const hoje = new Date();
-        const [mesInicial, setMesInicial] = useState(() => String(hoje.getMonth() + 1).padStart(2, '0'));
-        const [anoInicial, setAnoInicial] = useState(() => String(hoje.getFullYear()));
-        // Data final: último dia do mês atual
-        const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
-        const [mesFinal, setMesFinal] = useState(() => String(ultimoDia.getMonth() + 1).padStart(2, '0'));
-        const [anoFinal, setAnoFinal] = useState(() => String(ultimoDia.getFullYear()));
+        // "" = todos
+        const [anoFiltro, setAnoFiltro] = useState(() => String(anoAtual));
+        const [mesFiltro, setMesFiltro] = useState("");
+        const [confirmacaoExclusao, setConfirmacaoExclusao] = useState("");
 
       // ...já declarado no início do componente...
 
@@ -393,7 +386,17 @@ function PagamentosClient() {
             obs: obs
           };
           if (editando) {
-            await atualizarPagamento(editando.id, payload, token || "");
+            // Mesmo contrato do front Angular: PUT com o objeto completo, para não zerar datas/desconto.
+            const residenteSelecionado = residentes.find((r) => String(r.id) === String(pessoa));
+            await atualizarPagamento(
+              editando.id,
+              {
+                ...editando,
+                ...payload,
+                personName: residenteSelecionado?.name ?? editando.personName,
+              },
+              token || ""
+            );
             toast.success("Pagamento atualizado!");
           } else {
             await criarPagamento(payload, token || "");
@@ -474,45 +477,48 @@ function PagamentosClient() {
 
   // ...restante do código da função Pagamentos...
 
-  // Filtragem por data de abertura (datePayment)
-  function parseDataInicio(mes: string, ano: string) {
-    // Retorna Date do primeiro dia do mês
-    return new Date(Number(ano), Number(mes) - 1, 1, 0, 0, 0, 0);
-  }
-  function parseDataFim(mes: string, ano: string) {
-    // Retorna Date do último dia do mês
-    return new Date(Number(ano), Number(mes), 0, 23, 59, 59, 999);
-  }
-  function parseDataPagamento(data: string) {
-    // data no formato dd-MM-yyyy
-    if (!data || typeof data !== 'string') return null;
-    const partes = data.split('-');
-    if (partes.length !== 3) return null;
-    return new Date(Number(partes[2]), Number(partes[1]) - 1, Number(partes[0]), 12, 0, 0, 0);
-  }
-  // Filtragem coerente (periodo + residente + busca + situacao)
-  const pagamentosFiltrados = useMemo(() => {
-    let lista = filtrarPorResidente(pagamentos, residentIdFiltro);
-    lista = filtrarPagamentosPorPeriodo(
-      lista,
-      mesInicial,
-      anoInicial,
-      mesFinal,
-      anoFinal
-    );
-    lista = filtrarPorBusca(lista, busca, ["title", "personName"]);
-    lista = filtrarPorSituacao(lista, situacaoFiltro);
-    return lista;
-  }, [
-    pagamentos,
-    residentIdFiltro,
-    mesInicial,
-    anoInicial,
-    mesFinal,
-    anoFinal,
-    busca,
-    situacaoFiltro,
-  ]);
+  // Como no front Angular: residente (sem perfil admin/funcionário) só vê os próprios pagamentos.
+  const somenteResidente =
+    !!usuario &&
+    hasRole(usuario, UserRole.RESIDENT) &&
+    !hasRole(usuario, UserRole.ADMIN) &&
+    !hasRole(usuario, UserRole.EMPLOYEE);
+
+  const pagamentosVisiveis = useMemo(() => {
+    if (somenteResidente) {
+      return usuario?.id != null ? filtrarPorResidente(pagamentos, usuario.id) : [];
+    }
+    return filtrarPorResidente(pagamentos, residentIdFiltro);
+  }, [pagamentos, somenteResidente, usuario?.id, residentIdFiltro]);
+
+  const anos = useMemo(() => {
+    const conjunto = new Set<number>([anoAtual]);
+    for (const p of pagamentosVisiveis) {
+      const data = dataReferenciaPagamento(p);
+      if (data) conjunto.add(data.getFullYear());
+    }
+    return Array.from(conjunto).sort((a, b) => b - a);
+  }, [pagamentosVisiveis, anoAtual]);
+
+  const pagamentosPorTexto = useMemo(
+    () => filtrarPagamentosPorTexto(pagamentosVisiveis, busca),
+    [pagamentosVisiveis, busca]
+  );
+  const pagamentosFiltrados = useMemo(
+    () => filtrarPagamentosPorAnoMes(pagamentosPorTexto, anoFiltro, mesFiltro),
+    [pagamentosPorTexto, anoFiltro, mesFiltro]
+  );
+  const encontradosEmOutrosPeriodos =
+    busca.trim() && (anoFiltro || mesFiltro) ? pagamentosPorTexto.length - pagamentosFiltrados.length : 0;
+
+  const nomeMesFiltro = meses.find((m) => m.value === mesFiltro)?.label;
+  const rotuloPeriodo = anoFiltro
+    ? nomeMesFiltro
+      ? `${nomeMesFiltro}/${anoFiltro}`
+      : `${anoFiltro} (todos os meses)`
+    : nomeMesFiltro
+      ? `${nomeMesFiltro} de todos os anos`
+      : "Todos os períodos";
 
   // Cálculo do demonstrativo DRE (deve vir após pagamentosFiltrados)
   const totalRecebido = pagamentosFiltrados.filter(p => p.situation === 1).reduce((acc, p) => acc + Number(p.cash || 0), 0);
@@ -524,7 +530,8 @@ function PagamentosClient() {
 
   // Paginação
   const totalPaginas = Math.ceil(pagamentosFiltrados.length / itensPorPagina);
-  const inicio = (paginaAtual - 1) * itensPorPagina;
+  const paginaEfetiva = Math.min(paginaAtual, Math.max(1, totalPaginas));
+  const inicio = (paginaEfetiva - 1) * itensPorPagina;
   const fim = inicio + itensPorPagina;
   const pagamentosPaginados = pagamentosFiltrados.slice(inicio, fim);
 
@@ -552,29 +559,22 @@ function PagamentosClient() {
         ) : null}
         <section className="surface-card p-4 mb-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            {/* Filtros de data inicial/final */}
+            {/* Filtros: ano, mês e busca */}
             <div className="flex flex-col gap-2 w-full order-1 md:order-0">
               <div className="flex flex-col sm:flex-row gap-4 w-full">
-                <div className="flex flex-col flex-1 w-full">
-                  <label className="text-xs text-gray-600 mb-1">Data Inicial</label>
-                  <div className="flex flex-row gap-2 w-full">
-                    <select value={mesInicial} onChange={e => setMesInicial(e.target.value)} className="input-base text-lg w-1/2 bg-white">
-                      {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                    </select>
-                    <select value={anoInicial} onChange={e => setAnoInicial(e.target.value)} className="input-base text-lg w-1/2 bg-white">
+                <div className="flex flex-row gap-2 flex-1 w-full">
+                  <div className="flex flex-col w-1/2">
+                    <label className="text-xs text-gray-600 mb-1">Ano</label>
+                    <select value={anoFiltro} onChange={e => { setAnoFiltro(e.target.value); setPaginaAtual(1); }} className="input-base text-lg bg-white">
+                      <option value="">Todos</option>
                       {anos.map(a => <option key={a} value={a}>{a}</option>)}
                     </select>
                   </div>
-                </div>
-                <span className="mx-1 mb-3 hidden sm:inline self-end">até</span>
-                <div className="flex flex-col flex-1 w-full">
-                  <label className="text-xs text-gray-600 mb-1">Data Final</label>
-                  <div className="flex flex-row gap-2 w-full">
-                    <select value={mesFinal} onChange={e => setMesFinal(e.target.value)} className="input-base text-lg w-1/2 bg-white">
+                  <div className="flex flex-col w-1/2">
+                    <label className="text-xs text-gray-600 mb-1">Mês</label>
+                    <select value={mesFiltro} onChange={e => { setMesFiltro(e.target.value); setPaginaAtual(1); }} className="input-base text-lg bg-white">
+                      <option value="">Todos</option>
                       {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                    </select>
-                    <select value={anoFinal} onChange={e => setAnoFinal(e.target.value)} className="input-base text-lg w-1/2 bg-white">
-                      {anos.map(a => <option key={a} value={a}>{a}</option>)}
                     </select>
                   </div>
                 </div>
@@ -601,33 +601,29 @@ function PagamentosClient() {
                   </button>
                 </div>
               </div>
-              <div className="flex flex-row gap-2 flex-wrap items-end mt-2">
-                <div className="flex flex-col w-full">
-                  <input
-                    type="text"
-                    value={busca}
-                    onChange={aoBuscar}
-                    placeholder="Buscar por título ou pessoa"
-                    className="rounded border border-[#C3B4A8] px-3 py-2 grow min-w-0 focus:ring-2 focus:ring-[#DDA329] bg-white"
-                  />
-                </div>
-                <select
-                  value={situacaoFiltro}
-                  onChange={e => {
-                    const value = e.target.value;
-                    if (value === "") {
-                      setSituacaoFiltro("");
-                    } else {
-                      setSituacaoFiltro(value);
-                    }
-                    definirPaginaAtual(1);
-                  }}
-                  className="rounded border border-[#C3B4A8] px-3 py-2 w-36 shrink-0 focus:ring-2 focus:ring-[#DDA329] bg-white"
-                >
-                  <option value="">Todos</option>
-                  <option value="0">Aberto</option>
-                  <option value="1">Fechado</option>
-                </select>
+              <div className="flex flex-col gap-1 mt-2">
+                <input
+                  type="text"
+                  value={busca}
+                  onChange={aoBuscar}
+                  placeholder="Buscar: nome, título, endereço, valor, aberto/pago…"
+                  className="rounded border border-[#C3B4A8] px-3 py-2 w-full min-w-0 focus:ring-2 focus:ring-[#DDA329] bg-white"
+                />
+                <p className="text-xs text-[var(--rc-muted)]">
+                  Ano e mês seguem o mês de referência do título (ex.: &quot;Agosto 05/09/2024&quot; = Agosto/2024).
+                </p>
+                {encontradosEmOutrosPeriodos > 0 && (
+                  <p className="text-sm text-[var(--rc-primary)]">
+                    Mais {encontradosEmOutrosPeriodos} resultado(s) para essa busca em outros períodos.{" "}
+                    <button
+                      type="button"
+                      className="font-bold underline"
+                      onClick={() => { setAnoFiltro(""); setMesFiltro(""); setPaginaAtual(1); }}
+                    >
+                      Ver todos
+                    </button>
+                  </p>
+                )}
                 <div className="w-full flex justify-end">
                   <div className="text-base text-gray-700 mt-1 font-semibold">pagamentos: {pagamentosFiltrados.length}</div>
                 </div>
@@ -679,23 +675,46 @@ function PagamentosClient() {
           </button>
           <button
             className="rounded-lg bg-red-600 px-6 py-2 text-white font-bold shadow hover:bg-red-700 border border-red-800 transition-colors"
-            onClick={() => setModalDeletarGrupoAberto(true)}
+            onClick={() => { setConfirmacaoExclusao(""); setModalDeletarGrupoAberto(true); }}
           >
             Deletar em lote
           </button>
         </div>
       {/* Modal de deletar pagamentos em lote */}
-      <Modal aberto={modalDeletarGrupoAberto} aoFechar={() => setModalDeletarGrupoAberto(false)} titulo="Deletar pagamentos em lote">
+      <Modal aberto={modalDeletarGrupoAberto} aoFechar={() => { if (!carregandoDeletarGrupo) setModalDeletarGrupoAberto(false); }} titulo="Deletar pagamentos em lote">
         <div className="flex flex-col gap-4 p-4">
           <p className="text-lg text-red-700 font-bold">
-            Tem certeza que deseja deletar <b>{pagamentosFiltrados.length}</b> pagamento(s) listado(s)?
+            Esta ação apaga definitivamente <b>{pagamentosFiltrados.length}</b> pagamento(s) e não pode ser desfeita.
           </p>
+          <ul className="text-sm text-gray-800 list-disc pl-5 space-y-1">
+            <li>Período: {rotuloPeriodo}</li>
+            {busca.trim() && <li>Busca: &quot;{busca.trim()}&quot;</li>}
+            {residentIdFiltro && <li>Residente #{residentIdFiltro}</li>}
+            <li>
+              Já pagos (Fechado): <b className={qtdFechados > 0 ? "text-red-700" : ""}>{qtdFechados}</b>
+            </li>
+            <li>Títulos: {Array.from(new Set(pagamentosFiltrados.map(p => String(p.title || "").trim()))).slice(0, 5).join(" · ")}{new Set(pagamentosFiltrados.map(p => String(p.title || "").trim())).size > 5 ? " …" : ""}</li>
+          </ul>
+          <label className="flex flex-col gap-1 text-sm text-gray-800">
+            Para confirmar, digite a quantidade de pagamentos que serão apagados ({pagamentosFiltrados.length}):
+            <input
+              className="rounded border px-3 py-2 text-base bg-white"
+              inputMode="numeric"
+              value={confirmacaoExclusao}
+              onChange={e => setConfirmacaoExclusao(e.target.value)}
+              disabled={carregandoDeletarGrupo}
+            />
+          </label>
           {carregandoDeletarGrupo && (
             <p className="text-base text-red-800 font-semibold">Faltam <b>{itensRestantes}</b> para deletar...</p>
           )}
           <button
-            className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 cursor-pointer text-base sm:text-lg"
-            disabled={carregandoDeletarGrupo}
+            className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 cursor-pointer text-base sm:text-lg disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={
+              carregandoDeletarGrupo ||
+              pagamentosFiltrados.length === 0 ||
+              confirmacaoExclusao.trim() !== String(pagamentosFiltrados.length)
+            }
             onClick={async () => {
               setCarregandoDeletarGrupo(true);
               let total = 0, erros = 0;
@@ -712,6 +731,7 @@ function PagamentosClient() {
                 setItensRestantes(itens);
               }
               toast.success(`Pagamentos em lote deletados! Removidos: ${total}, Erros: ${erros}`);
+              setConfirmacaoExclusao("");
               setModalDeletarGrupoAberto(false);
               carregarPagamentos();
               setCarregandoDeletarGrupo(false);
@@ -991,7 +1011,7 @@ function PagamentosClient() {
             </Modal>
         {/* Modal de Recibo global */}
             <Paginacao
-              paginaAtual={paginaAtual}
+              paginaAtual={paginaEfetiva}
               totalPaginas={totalPaginas}
               aoMudar={aoMudarPagina}
             />
